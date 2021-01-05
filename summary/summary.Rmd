@@ -1,0 +1,430 @@
+---
+title: "The Value of Information and Warnings about Harmful Algal Blooms"
+author: "Klaus Moeltner, Zhenyu Yao, Bryan Parthum"
+date: "`r Sys.Date()`"
+output:
+  bookdown::html_document2:
+    df_print: paged
+    toc: true
+    toc_float: true
+    fig_caption: yes
+    depth: 2
+    number_sections: true
+    code_folding:  hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+library(memisc)
+library(gmnl)
+library(kableExtra)
+library(tidyverse)
+library(magrittr)
+library(qpcR)
+```
+
+# Summary
+
+This document provides an overview of the estimation for the Red Tide Mapping project, and the motivation behind each specification. The models are estimated in [Rstudio](https://rstudio.com/), an open source platform using the [-gmnl-](https://www.jstatsoft.org/article/view/v079i02) package (Sarrias and Daziano, 2017). 
+
+# Methods
+
+# Summary Statistics
+
+<br>
+
+# Preference Space Models
+
+We first estimate the model using a simple multinomial logit (MNL). We then introduce the random parameter model (MXL) with both uncorrelated random parameters and fully correlated. We assume the distribution on _bid_ is fixed in order to derive subsequent empirical distributions of willingness to pay (WTP) using the delta method. This means that the marginal utility of money is uniform across respondents.
+
+```{r message=FALSE, warning=FALSE, eval=FALSE, echo=TRUE}
+## clean data and prepare for regressions
+
+## read in files
+data <- read_csv("store/cleaned_data.csv")
+
+## drop protest. ask Klaus why does protNO==-999 in many cases?
+data %<>% dplyr::filter(protNO!=1)
+
+## keep only relevant columns
+data %<>% dplyr::select(id, set, idset, # choice set variables
+                        choice,sq,cov12,acc175,acc1100,acc275,acc2100,bid, # primary variables of interest
+                        watercolor2018,respirr2018,watercolor2019,respirr2019,watercolor_1m,respirr_1m, # beach observations
+                        income) # individual characteristics, any others?
+
+## sort and generate unique id for each alternative
+data %<>% group_by(idset) %>% mutate(alt = seq(n()))
+data %<>% arrange(id,set,idset)
+data %<>% mutate(bid = as.numeric(bid))
+
+## create interactions for heterogeneity
+data %<>% mutate(sq_income = sq * income,
+                 sq_watercolor2018 = sq * watercolor2018,
+                 sq_watercolor2019 = sq * watercolor2019,
+                 sq_watercolor_1m = sq * watercolor_1m,
+                 sq_respirr2018 = sq * respirr2018,
+                 sq_respirr2019 = sq * respirr2019,
+                 sq_respirr_1m = sq * respirr_1m)
+
+
+## create mlogit data
+d <-  mlogit.data(data,
+                  # shape='long',
+                  drop.index = TRUE,
+                  id.var='id', ## unique to individual_id
+                  chid.var = 'idset', ## unique to individual_id and card_id
+                  choice='choice',
+                  shape='long',
+                  alt.var='alt') ## the number alternative on each card
+                  # opposite=c('bid')) ## bid is already opposite in Klaus' cleaning
+```
+
+```{r message=FALSE, warning=FALSE, eval=FALSE, echo=TRUE}
+## Models executed in 2_analyze_preferencespace.R
+
+####################################################
+#######################################  Null Models
+####################################################
+
+null_model <- mlogit(choice ~ sq | 0 , data=d)
+
+####################################################
+#########################################  BASIC MNL
+####################################################
+
+## Klaus' basic MNL: clogit choice sq cov12 acc175 acc1100 acc275 acc2100 bid, group(idset), if protNO~=1
+
+pref_clogit <-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid | 0 ,
+                     data=d,
+                     model='mnl')
+
+####################################################
+#######################  INTRODUCE RANDOM PARAMETERS
+####################################################
+
+pref_uncorr <-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid | 0 ,
+                    data=d,
+                    ranp=c(cov12='n',acc175='n',acc1100='n',acc275='n',acc2100='n'),
+                    model='mixl',
+                    panel=TRUE,
+                    correlation=FALSE,
+                    seed=42)
+
+####################################################
+#####################  CORRELLATED RANDOM PARAMETERS
+####################################################
+
+pref <-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid | 0 ,
+                     data=d,
+                     ranp=c(cov12='n',acc175='n',acc1100='n',acc275='n',acc2100='n'),
+                     model='mixl',
+                     panel=TRUE,
+                     correlation=TRUE,
+                     seed=42,
+                     method = "bhhh",
+                     iterlim = 500,
+                     halton=NA)
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
+## LOAD NULL MODEL
+null_model <- readRDS("../output/estimates/null_model.rds")
+
+## LOAD PREFERENCE SPACE MODELS
+pref_clogit         <- readRDS("../output/estimates/pref_clogit.rds")
+pref_uncorr         <- readRDS("../output/estimates/pref_uncorr.rds")
+pref                <- readRDS("../output/estimates/pref.rds")
+
+## Export
+
+## replace getSummary function with one that will work with -gmnl-
+getSummary <- getSummary.gmnl
+
+mtable("C-logit"=pref_clogit,"MXL Uncorrelated"=pref_uncorr,"MXL Correlated"=pref,
+                    digits=3,
+                    summary.stats = c("N","Log-likelihood","AIC",'BIC')) %>%
+        relabel(.,sq = "Status-Quo",
+              cov12 = "Coverage: 12 Miles",
+              acc175 = "Accuracy 1: 75%",
+              acc1100 = "Accuracy 1: 100%",
+              acc275 = "Accuracy 2: 75%",
+              acc2100 = "Accuracy 2: 100%",
+              bid = 'Cost')
+```
+
+<br>
+
+Model fit according to McFadden pseudo $\rho^2$: $1-\frac{LL_{full}}{LL_{null}}$
+
+```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
+## write function to recover McFadden's pseudo R2
+mcfad_r2 <- function(x,y) {round(1-(as.numeric(logLik(x))/as.numeric(logLik(y))),2)}
+pref_clogit_r2 <- mcfad_r2(pref_clogit,null_model)
+pref_uncorr_r2 <- mcfad_r2(pref_uncorr,null_model)
+pref_r2        <- mcfad_r2(pref,null_model)
+
+data.frame(row.names = 'McFadden \\(\\rho^2\\)',
+          "MNL"=pref_clogit_r2,"MXL Uncorrelated"=pref_uncorr_r2,"MXL Correlated"=pref_r2) %>%
+           kbl() %>% kable_classic(full_width = FALSE)
+```
+
+<br>
+
+## Standard Deviations of Random Parameters
+
+```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
+####################################################
+###############################  STANDARD DEVIATIONS
+####################################################
+vcov(pref, what = "ranp", type = "sd", se = "true")
+```
+
+## Correlation Coefficients of Random Parameters
+
+```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
+####################################################
+################################  CORELLATION MATRIX
+####################################################
+vcov(pref, what = "ranp", type = "cor")
+```
+
+<br>
+
+## Willingness to Pay
+
+```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE,results="hide"}
+pref_clogit_wtp <- wtp.gmnl(pref_clogit, wrt = "bid")
+pref_uncorr_wtp <- wtp.gmnl(pref_uncorr, wrt = "bid")
+pref_wtp        <- wtp.gmnl(pref, wrt = "bid")
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
+## Write a function to make significance stars
+stars <- function(x) {ifelse(x[,4]<0.001,'***',ifelse(x[,4]<0.01 & x[,4]>=0.001,'**',ifelse(x[,4]<0.05 & x[,4]>=0.01,'*','')))}
+
+## Write a function to create bounds on WTP
+ci <- function(x,y) {paste0('[', round(x-(1.96*y[,2]),2), ', ', round(x+(1.96*y[,2]),2),']')}
+
+pref_clogit_wtp %<>% as.data.frame() %>% slice(1:6) %>%
+                     mutate(Estimate = Estimate*-1,
+                            stars = stars(.),
+                            CI = ci(Estimate,.),
+                            WTP = paste0(round(Estimate,2),stars),
+                            Attribute = rownames(.)) %>%
+                     select(Attribute,WTP,CI) %>%
+                     pivot_longer(WTP:CI) %>%
+                     rename('MNL'=value) %>%
+                     mutate(Attribute = ifelse(name=='CI','',Attribute)) %>%
+                     select(1,3)
+
+pref_uncorr_wtp %<>% as.data.frame() %>% slice(1:6) %>%
+                     mutate(Estimate = Estimate*-1,
+                            stars = stars(.),
+                            CI = ci(Estimate,.),
+                            WTP = paste0(round(Estimate,2),stars),
+                            Attribute = rownames(.)) %>%
+                     select(Attribute,WTP,CI) %>%
+                     pivot_longer(WTP:CI) %>%
+                     rename('MXL Uncorrelated'=value) %>%
+                     mutate(Attribute = ifelse(name=='CI','',Attribute)) %>%
+                     select(3)
+
+pref_wtp %<>% as.data.frame() %>% slice(1:6) %>%
+                     mutate(Estimate = Estimate*-1,
+                            stars = stars(.),
+                            CI = ci(Estimate,.),
+                            WTP = paste0(round(Estimate,2),stars),
+                            Attribute = rownames(.)) %>%
+                     select(Attribute,WTP,CI) %>%
+                     pivot_longer(WTP:CI) %>%
+                     rename('MXL Correlated'=value) %>%
+                     mutate(Attribute = ifelse(name=='CI','',Attribute)) %>%
+                     select(3)
+
+wtp <- cbind(pref_clogit_wtp,pref_uncorr_wtp,pref_wtp) %>% 
+       mutate(Attribute = c("Status-Quo","","Coverage: 12 Miles","","Accuracy 1: 75%","","Accuracy 1: 100%","","Accuracy 2: 75%","","Accuracy 2: 100%",""))
+
+kable(wtp, caption='Willingness to Pay from Preference-Space',booktabs = TRUE, align = c('l','c','c','c')) %>% kable_classic() %>% kable_styling(font_size = 16) %>%
+      footnote('95% confidence intervals in brackets derived using the delta method. \\(^{*}\\)p<0.1; \\(^{**}\\)p<0.05; \\(^{***}\\)p<0.01',footnote_as_chunk = T)
+```
+
+<br> 
+
+# Preference Heterogeneity
+
+We introduce preference heterogeneity by interacting past environmental observations at the three nearest beaches to each respondent's recorded zip code (inverse gravity distance weighting). These are averages for 2019 and the one month prior to when the respondent took the survey. 
+
+- Water color:
+  - 1 = Clear. Able to see the bottom in shallow water.
+  - 2 = Moderate. A light tint.
+  - 3 = Dark. Thick or murky water.
+  
+- Respiratory irritation: 
+  - 1 = None. No coughing observed due to airborne toxins.
+  - 2 = Slight. A few coughs/sneezes heard in 30 seconds.
+  - 3 = Moderate. A cough/sneeze heard every 5 seconds.
+  - 4 = High. Coughing/sneezing heard almost continuously.
+  
+All models assume fully correlated random parameters, with _bid_ fixed. 
+  
+```{r message=FALSE, warning=FALSE, eval=FALSE, echo=TRUE}
+## Models executed in 2_analyze_preferencespace.R
+
+####################################################
+#######################################  WATER COLOR
+####################################################
+
+pref_het_water <-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid + sq_watercolor2019 + sq_watercolor_1m | 0 ,
+                   data=d,
+                   ranp=c(cov12='n',acc175='n',acc1100='n',acc275='n',acc2100='n',sq_watercolor2019='n',sq_watercolor_1m='n'),
+                   model='mixl',
+                   panel=TRUE,
+                   correlation=TRUE,
+                   seed=42,
+                   method = "bhhh",
+                   iterlim = 500,
+                   halton=NA)
+
+####################################################
+##############  WATER COLOR AND RESPIRATORY WARNINGS
+####################################################
+
+pref_het_water_resp <-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid + sq_watercolor2019 + sq_watercolor_1m + sq_respirr2019 + sq_respirr_1m | 0 ,
+                        data=d,
+                        ranp=c(cov12='n',acc175='n',acc1100='n',acc275='n',acc2100='n',sq_watercolor2019='n',sq_watercolor_1m='n',sq_respirr2019='n',sq_respirr_1m='n'),
+                        model='mixl',
+                        panel=TRUE,
+                        correlation=TRUE,
+                        seed=42,
+                        method = "bhhh",
+                        iterlim = 500,
+                        halton=NA)
+
+####################################################
+#########  WATER COLOR AND RESPIRATORY WARNINGS 2019
+####################################################
+
+pref_het_water_resp_2019 <-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid + sq_watercolor2019 + sq_respirr2019 | 0 ,
+                             data=d,
+                             ranp=c(cov12='n',acc175='n',acc1100='n',acc275='n',acc2100='n',sq_watercolor2019='n',sq_respirr2019='n'),
+                             model='mixl',
+                             panel=TRUE,
+                             correlation=TRUE,
+                             seed=42,
+                             method = "bhhh",
+                             iterlim = 500,
+                             halton=NA)
+
+####################################################
+######  WATER COLOR AND RESPIRATORY WARNINGS 1 MONTH
+####################################################
+
+pref_het_water_resp_1m <-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid + sq_watercolor_1m + sq_respirr_1m | 0 ,
+                             data=d,
+                             ranp=c(cov12='n',acc175='n',acc1100='n',acc275='n',acc2100='n',sq_watercolor_1m='n',sq_respirr_1m='n'),
+                             model='mixl',
+                             panel=TRUE,
+                             correlation=TRUE,
+                             seed=42,
+                             method = "bhhh",
+                             iterlim = 500,
+                             halton=NA)
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
+## LOAD PREFERENCE SPACE MODELS
+pref                <- readRDS("../output/estimates/pref.rds")
+pref_het_water      <- readRDS("../output/estimates/pref_het_water.rds")
+pref_het_water_resp <- readRDS("../output/estimates/pref_het_water_resp.rds")
+
+## Export
+mtable("MXL"=pref,"MXL Water Color"=pref_het_water,"MXL Water and Respiratory"=pref_het_water_resp,
+                    digits=3,
+                    summary.stats = c("N","Log-likelihood","AIC",'BIC')) %>%
+  relabel(.,sq = "Status-Quo",
+        cov12 = "Coverage: 12 Miles",
+        acc175 = "Accuracy 1: 75%",
+        acc1100 = "Accuracy 1: 100%",
+        acc275 = "Accuracy 2: 75%",
+        acc2100 = "Accuracy 2: 100%",
+        sq_watercolor2019 = 'Mean Water Clarity 2019',
+        sq_watercolor_1m  = 'Mean Water Clarity 1 Month',
+        sq_respirr2019  = 'Mean Respiratory Quality 2019',
+        sq_respirr_1m  = 'Mean Respiratory Quality 1 Month')
+```
+
+<br>
+
+Model fit according to McFadden pseudo $\rho^2$: $1-\frac{LL_{full}}{LL_{null}}$
+
+```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
+pref_r2                 <- mcfad_r2(pref,null_model)
+pref_het_water_r2       <- mcfad_r2(pref_het_water,null_model)
+pref_het_water_resp_r2  <- mcfad_r2(pref_het_water_resp,null_model)
+
+
+data.frame(row.names = 'McFadden \\(\\rho^2\\)',
+          "MXL Correlated"=pref_r2,"MXL Water Color"=pref_het_water_r2,"MXL Water and Respiratory"=pref_het_water_resp_r2) %>%
+    kbl() %>% kable_classic(full_width = FALSE)
+```
+
+<br>
+
+## Willingness to Pay with Status Quo Heterogeneity
+```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE,results="hide"}
+pref_wtp                 <- wtp.gmnl(pref, wrt = "bid")
+pref_het_water_wtp       <- wtp.gmnl(pref_het_water, wrt = "bid")
+pref_het_water_resp_wtp  <- wtp.gmnl(pref_het_water_resp, wrt = "bid")
+```
+
+```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
+## Write a function to make significance stars
+stars <- function(x) {ifelse(x[,4]<0.001,'***',ifelse(x[,4]<0.01 & x[,4]>=0.001,'**',ifelse(x[,4]<0.05 & x[,4]>=0.01,'*','')))}
+
+## Write a function to create bounds on WTP
+ci <- function(x,y) {paste0('[', round(x-(1.96*y[,2]),2), ', ', round(x+(1.96*y[,2]),2),']')}
+
+pref_wtp %<>% as.data.frame() %>% slice(1:6) %>%
+                     mutate(Estimate = Estimate*-1,
+                            stars = stars(.),
+                            CI = ci(Estimate,.),
+                            WTP = paste0(round(Estimate,2),stars),
+                            Attribute = rownames(.)) %>%
+                     select(Attribute,WTP,CI) %>%
+                     pivot_longer(WTP:CI) %>%
+                     rename('MXL Correlated'=value) %>%
+                     mutate(Attribute = ifelse(name=='CI','',Attribute)) %>%
+                     select(1,3)
+
+pref_het_water_wtp %<>% as.data.frame() %>% slice(1:8) %>%
+                     mutate(Estimate = Estimate*-1,
+                            stars = stars(.),
+                            CI = ci(Estimate,.),
+                            WTP = paste0(round(Estimate,2),stars),
+                            Attribute = rownames(.)) %>%
+                     select(Attribute,WTP,CI) %>%
+                     pivot_longer(WTP:CI) %>%
+                     rename('MXL Water Color'=value) %>%
+                     mutate(Attribute = ifelse(name=='CI','',Attribute)) %>%
+                     select(3)
+
+pref_het_water_resp_wtp %<>% as.data.frame() %>% slice(1:10) %>%
+                     mutate(Estimate = Estimate*-1,
+                            stars = stars(.),
+                            CI = ci(Estimate,.),
+                            WTP = paste0(round(Estimate,2),stars),
+                            Attribute = rownames(.)) %>%
+                     select(Attribute,WTP,CI) %>%
+                     pivot_longer(WTP:CI) %>%
+                     rename('MXL Water and Respiratory'=value) %>%
+                     mutate(Attribute = ifelse(name=='CI','',Attribute)) %>%
+                     select(3)
+
+wtp <- qpcR:::cbind.na(pref_wtp,pref_het_water_wtp,pref_het_water_resp_wtp) %>% 
+       mutate(Attribute = c("Status-Quo","","Coverage: 12 Miles","","Accuracy 1: 75%","","Accuracy 1: 100%","","Accuracy 2: 75%","","Accuracy 2: 100%","","Mean Water Clarity 2019","","Mean Water Clarity 1 Month","","Mean Respiratory Quality 2019","","Mean Respiratory Quality 1 Month",""))
+wtp[is.na(wtp)] <- " "
+
+kable(wtp, caption='Willingness to Pay from Preference-Space',booktabs = TRUE, align = c('l','c','c','c')) %>% kable_classic() %>% kable_styling(font_size = 16) %>%
+  footnote('95% confidence intervals in brackets derived using the delta method. \\(^{*}\\)p<0.1; \\(^{**}\\)p<0.05; \\(^{***}\\)p<0.01',footnote_as_chunk = T)
+```

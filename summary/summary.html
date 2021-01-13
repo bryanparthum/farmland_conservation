@@ -9,11 +9,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Klaus Moeltner, Zhenyu Yao, Bryan Parthum" />
+<meta name="author" content="Amy Ando, Frederick Nyanzu, and Bryan Parthum" />
 
-<meta name="date" content="2020-12-18" />
+<meta name="date" content="2021-01-13" />
 
-<title>The Value of Information and Warnings about Harmful Algal Blooms</title>
+<title>Buying the Farm: The Distribution of Local and Cultural Benefits from Farmland Conservation</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -3137,1162 +3137,1014 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">The Value of Information and Warnings about Harmful Algal Blooms</h1>
-<h4 class="author">Klaus Moeltner, Zhenyu Yao, Bryan Parthum</h4>
-<h4 class="date">2020-12-18</h4>
+<h1 class="title toc-ignore">Buying the Farm: The Distribution of Local and Cultural Benefits from Farmland Conservation</h1>
+<h4 class="author">Amy Ando, Frederick Nyanzu, and Bryan Parthum</h4>
+<h4 class="date">2021-01-13</h4>
 
 </div>
 
 
 <div id="summary" class="section level1" number="1">
 <h1><span class="header-section-number">1</span> Summary</h1>
-<p>This document provides an overview of the estimation for the Red Tide Mapping project, and the motivation behind each specification. The models are estimated in <a href="https://rstudio.com/">Rstudio</a>, an open source platform using the <a href="https://www.jstatsoft.org/article/view/v079i02">-gmnl-</a> package (Sarrias and Daziano, 2017).</p>
+<p>This document provides an overview of a simulation of the designed discrete choice experiment exploring local and cultural values of farmland conservation. The experiment design was creasted using <a href="https://ideas.repec.org/c/boc/bocode/s458059.html">-dcreate-</a> (Hole, 2015) in <a href="https://www.stata.com/stata15/">Stata 15</a>. Models are estimated in <a href="https://rstudio.com/">Rstudio</a>, an open source platform using the <a href="https://www.jstatsoft.org/article/view/v079i02">-gmnl-</a> package (Sarrias and Daziano, 2017).</p>
 </div>
-<div id="methods" class="section level1" number="2">
-<h1><span class="header-section-number">2</span> Methods</h1>
+<div id="the-experiment-design" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> The Experiment Design</h1>
+<p>The experiment design consists of 3 blocks of 8 choice cards (occasions)—a total of 26 possible cards. Each choice occasion has a status-quo (no policy) option and an alternative (policy) option (i.e. dichotomous choice).</p>
+<pre class="r"><code>## Read experiment design from generated design
+data &lt;- read_excel(&#39;../experiment_design/store/design_matrix.xlsx&#39;)
+
+## Summary table of attribute levels
+design_matrix_miles &lt;- data %&gt;%
+                       filter(treatment==&quot;miles&quot;) %&gt;%
+                       mutate(block = ifelse(cost==0,&#39;Status Quo&#39;,block),
+                              miles = paste(dist,&#39;&#39;,&#39;miles&#39;)) %&gt;%
+                       group_by(block) %&gt;%
+                       distinct(cost,nature,farmland,food,meals,fruit,veggies,miles) %&gt;%
+                       arrange(factor(block, levels = c(&#39;Status Quo&#39;,1,2,3)))
+
+design_matrix_minutes &lt;- data %&gt;%
+                         filter(treatment==&quot;minutes&quot;) %&gt;%
+                         mutate(block = ifelse(cost==0,&#39;Status Quo&#39;,block),
+                                minutes = paste(dist,&#39;&#39;,&#39;minutes&#39;)) %&gt;%    
+                         group_by(block) %&gt;%
+                         distinct(cost,nature,farmland,food,meals,fruit,veggies,minutes) %&gt;%
+                         arrange(factor(block, levels = c(&#39;Status Quo&#39;,1,2,3))) %&gt;%
+                         ungroup()
+
+design_matrix &lt;- cbind(design_matrix_miles, (design_matrix_minutes %&lt;&gt;% select(minutes))) %&gt;% relocate(minutes, .after = miles) %&gt;% relocate(food, .before = meals) 
+
+kable(design_matrix, caption=&#39;Unique alternatives in each of the 3 blocks&#39;,booktabs = TRUE, align = c(&#39;l&#39;,&#39;c&#39;,&#39;c&#39;,&#39;c&#39;)) %&gt;% kable_classic() %&gt;% kable_styling(font_size = 16) %&gt;%
+      footnote(&#39;There are two treatments (minutes and miles) that have identical designs&#39;,footnote_as_chunk = T)</code></pre>
+<table class=" lightable-classic table" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; margin-left: auto; margin-right: auto; font-size: 16px; margin-left: auto; margin-right: auto;border-bottom: 0;">
+<caption style="font-size: initial !important;">
+<span id="tab:unnamed-chunk-2">Table 2.1: </span>Unique alternatives in each of the 3 blocks
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+block
+</th>
+<th style="text-align:center;">
+cost
+</th>
+<th style="text-align:center;">
+nature
+</th>
+<th style="text-align:center;">
+farmland
+</th>
+<th style="text-align:left;">
+food
+</th>
+<th style="text-align:center;">
+meals
+</th>
+<th style="text-align:center;">
+fruit
+</th>
+<th style="text-align:center;">
+veggies
+</th>
+<th style="text-align:left;">
+miles
+</th>
+<th style="text-align:center;">
+minutes
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Status Quo
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+0 miles
+</td>
+<td style="text-align:center;">
+0 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+160
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4,000
+</td>
+<td style="text-align:center;">
+4000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4,000
+</td>
+<td style="text-align:center;">
+1000
+</td>
+<td style="text-align:center;">
+3000
+</td>
+<td style="text-align:left;">
+5 miles
+</td>
+<td style="text-align:center;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+5 miles
+</td>
+<td style="text-align:center;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+160
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4,000
+</td>
+<td style="text-align:center;">
+4000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+5 miles
+</td>
+<td style="text-align:center;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+5 miles
+</td>
+<td style="text-align:center;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4,000
+</td>
+<td style="text-align:center;">
+3000
+</td>
+<td style="text-align:center;">
+1000
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+160
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+40 miles
+</td>
+<td style="text-align:center;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+40 miles
+</td>
+<td style="text-align:center;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+5 miles
+</td>
+<td style="text-align:center;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+40 miles
+</td>
+<td style="text-align:center;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4,000
+</td>
+<td style="text-align:center;">
+2000
+</td>
+<td style="text-align:center;">
+2000
+</td>
+<td style="text-align:left;">
+40 miles
+</td>
+<td style="text-align:center;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4,000
+</td>
+<td style="text-align:center;">
+2000
+</td>
+<td style="text-align:center;">
+2000
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4,000
+</td>
+<td style="text-align:center;">
+1000
+</td>
+<td style="text-align:center;">
+3000
+</td>
+<td style="text-align:left;">
+40 miles
+</td>
+<td style="text-align:center;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+160
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+5 miles
+</td>
+<td style="text-align:center;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4,000
+</td>
+<td style="text-align:center;">
+1000
+</td>
+<td style="text-align:center;">
+3000
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+40 miles
+</td>
+<td style="text-align:center;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4,000
+</td>
+<td style="text-align:center;">
+2000
+</td>
+<td style="text-align:center;">
+2000
+</td>
+<td style="text-align:left;">
+5 miles
+</td>
+<td style="text-align:center;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4,000
+</td>
+<td style="text-align:center;">
+3000
+</td>
+<td style="text-align:center;">
+1000
+</td>
+<td style="text-align:left;">
+40 miles
+</td>
+<td style="text-align:center;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+160
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4,000
+</td>
+<td style="text-align:center;">
+4000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+40 miles
+</td>
+<td style="text-align:center;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4,000
+</td>
+<td style="text-align:center;">
+3000
+</td>
+<td style="text-align:center;">
+1000
+</td>
+<td style="text-align:left;">
+5 miles
+</td>
+<td style="text-align:center;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+160
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+30 minutes
+</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td style="padding: 0; " colspan="100%">
+<span style="font-style: italic;">Note: </span> <sup></sup> There are two treatments (minutes and miles) that have identical designs
+</td>
+</tr>
+</tfoot>
+</table>
 </div>
-<div id="summary-statistics" class="section level1" number="3">
-<h1><span class="header-section-number">3</span> Summary Statistics</h1>
-<p><br></p>
+<div id="simulation-data" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Simulation Data</h1>
+<p>To explore if our experiment design provides the necessary variation to estimate the model, we simulate a completed survey using random choices of 600 individuals. Because choices are random, the coefficients will (should) be insignificant.</p>
+<pre class="r"><code>## Repeat for arbitrary number of respondents, assume one respondent per block-treatment pair 
+## Three blocks of eight cards with two alternatives and two treatments in initial design
+data &lt;- bind_rows(replicate(100, data, simplify = FALSE))
+
+## Number of individuals in sample
+nrow(data)/16</code></pre>
+<pre><code>## [1] 600</code></pre>
+<pre class="r"><code>## Generate unique individual identifiers
+data %&lt;&gt;% mutate(ind_id = ceiling(row_number()/16))
+
+## This includes both treatments. Create a unique card identifier for a pooled (both treatments) dataset
+data %&lt;&gt;% group_by(treatment,block,card) %&gt;%
+          mutate(pooled_card_id = cur_group_id())
+
+## Generate unique individual-card identifier (unique choice occasions)
+data %&lt;&gt;% group_by(ind_id,pooled_card_id) %&gt;%
+          mutate(ind_card_id = cur_group_id())
+
+## Generate random choices
+set.seed(42)
+data %&lt;&gt;% group_by(ind_card_id) %&gt;%
+          mutate(choice = sample(c(0,1), replace=FALSE, size=2)) 
+
+## Generate alternative specific constant
+data %&lt;&gt;% mutate(asc = ifelse(alt==2,1,0))
+
+## Generate interactions
+data %&lt;&gt;% mutate(food_fruit = food * fruit)
+
+## Write to CSV 
+write_csv(data,&#39;../store/simulation_data.csv&#39;)</code></pre>
 </div>
 <div id="preference-space-models" class="section level1" number="4">
-<h1><span class="header-section-number">4</span> Preference Space Models</h1>
-<p>We first estimate the model using a simple multinomial logit (MNL). We then introduce the random parameter model (MXL) with both uncorrelated random parameters and fully correlated. We assume the distribution on <em>bid</em> is fixed in order to derive subsequent empirical distributions of willingness to pay (WTP) using the delta method. This means that the marginal utility of money is uniform across respondents.</p>
-<pre class="r"><code>## clean data and prepare for regressions
-
-## read in files
-data &lt;- read_csv(&quot;store/cleaned_data.csv&quot;)
-
-## drop protest. ask Klaus why does protNO==-999 in many cases?
-data %&lt;&gt;% dplyr::filter(protNO!=1)
-
-## keep only relevant columns
-data %&lt;&gt;% dplyr::select(id, set, idset, # choice set variables
-                        choice,sq,cov12,acc175,acc1100,acc275,acc2100,bid, # primary variables of interest
-                        watercolor2018,respirr2018,watercolor2019,respirr2019,watercolor_1m,respirr_1m, # beach observations
-                        income) # individual characteristics, any others?
-
-## sort and generate unique id for each alternative
-data %&lt;&gt;% group_by(idset) %&gt;% mutate(alt = seq(n()))
-data %&lt;&gt;% arrange(id,set,idset)
-data %&lt;&gt;% mutate(bid = as.numeric(bid))
-
-## create interactions for heterogeneity
-data %&lt;&gt;% mutate(sq_income = sq * income,
-                 sq_watercolor2018 = sq * watercolor2018,
-                 sq_watercolor2019 = sq * watercolor2019,
-                 sq_watercolor_1m = sq * watercolor_1m,
-                 sq_respirr2018 = sq * respirr2018,
-                 sq_respirr2019 = sq * respirr2019,
-                 sq_respirr_1m = sq * respirr_1m)
-
-
-## create mlogit data
+<h1><span class="header-section-number">4</span> Preference-space Models</h1>
+<p>We first estimate the model using a simple multinomial logit (MNL). We then introduce the random parameter model (MXL) with both uncorrelated random parameters and fully correlated. We assume the distribution on <em>cost</em> is fixed in order to derive subsequent empirical distributions of willingness to pay (WTP) using the delta method. This means that the marginal utility of money is uniform across respondents.</p>
+<pre class="r"><code>## Create mlogit data
 d &lt;-  mlogit.data(data,
-                  # shape=&#39;long&#39;,
+                  # shape=&#39;long&#39;, 
                   drop.index = TRUE,
-                  id.var=&#39;id&#39;, ## unique to individual_id
-                  chid.var = &#39;idset&#39;, ## unique to individual_id and card_id
+                  id.var=&#39;ind_id&#39;, ## unique to individual_id
+                  chid.var = &#39;ind_card_id&#39;, ## unique to individual_id and card_id
                   choice=&#39;choice&#39;,
                   shape=&#39;long&#39;,
                   alt.var=&#39;alt&#39;) ## the number alternative on each card
-                  # opposite=c(&#39;bid&#39;)) ## bid is already opposite in Klaus&#39; cleaning</code></pre>
-<pre class="r"><code>## Models executed in 2_analyze_preferencespace.R
-
-####################################################
+                  # opposite=c(&#39;bid&#39;)) ## if changing distribution of cost coefficient to log-normal</code></pre>
+<div id="null-model" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> Null Model</h2>
+<p><span class="math display">\[V_{it} = ACS + \varepsilon_{it}\]</span></p>
+<pre class="r"><code>####################################################
 #######################################  Null Models
 ####################################################
 
-null_model &lt;- mlogit(choice ~ sq | 0 , data=d)
-
+null_model &lt;- mlogit(choice ~ asc | 0 , data=d)
+summary(null_model)</code></pre>
+<pre><code>## 
+## Call:
+## mlogit(formula = choice ~ asc | 0, data = d, method = &quot;nr&quot;)
+## 
+## Frequencies of alternatives:choice
+##       1       2 
+## 0.49688 0.50313 
+## 
+## nr method
+## 2 iterations, 0h:0m:0s 
+## g&#39;(-H)^-1g = 0.188 
+## successive function values within tolerance limits 
+## 
+## Coefficients :
+##     Estimate Std. Error z-value Pr(&gt;|z|)
+## asc 0.012500   0.028868   0.433    0.665
+## 
+## Log-Likelihood: -3327</code></pre>
+</div>
+<div id="multinomial-logit" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> Multinomial Logit</h2>
+<p><span class="math display">\[V_{it} = ACS + \lambda cost_{it} + \beta_1 nature_{it} + \beta_2 farmland_{it} + \beta_3 food_{it} + \beta_4 distance_{it} + \varepsilon_{it}\]</span></p>
+<pre class="r"><code>####################################################
+################################################  MNL
 ####################################################
-#########################################  BASIC MNL
-####################################################
 
-## Klaus&#39; basic MNL: clogit choice sq cov12 acc175 acc1100 acc275 acc2100 bid, group(idset), if protNO~=1
-
-pref_clogit &lt;-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid | 0 ,
+pref_clogit &lt;-  gmnl(choice ~ asc + cost + nature + farmland + food + dist | 0 ,
                      data=d,
                      model=&#39;mnl&#39;)
 
-####################################################
-#######################  INTRODUCE RANDOM PARAMETERS
-####################################################
-
-pref_uncorr &lt;-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid | 0 ,
-                    data=d,
-                    ranp=c(cov12=&#39;n&#39;,acc175=&#39;n&#39;,acc1100=&#39;n&#39;,acc275=&#39;n&#39;,acc2100=&#39;n&#39;),
-                    model=&#39;mixl&#39;,
-                    panel=TRUE,
-                    correlation=FALSE,
-                    seed=42)
-
-####################################################
-#####################  CORRELLATED RANDOM PARAMETERS
-####################################################
-
-pref &lt;-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid | 0 ,
-                     data=d,
-                     ranp=c(cov12=&#39;n&#39;,acc175=&#39;n&#39;,acc1100=&#39;n&#39;,acc275=&#39;n&#39;,acc2100=&#39;n&#39;),
-                     model=&#39;mixl&#39;,
-                     panel=TRUE,
-                     correlation=TRUE,
-                     seed=42,
-                     method = &quot;bhhh&quot;,
-                     iterlim = 500,
-                     halton=NA)</code></pre>
-<pre class="r"><code>## LOAD NULL MODEL
-null_model &lt;- readRDS(&quot;../output/estimates/null_model.rds&quot;)
-
-## LOAD PREFERENCE SPACE MODELS
-pref_clogit         &lt;- readRDS(&quot;../output/estimates/pref_clogit.rds&quot;)
-pref_uncorr         &lt;- readRDS(&quot;../output/estimates/pref_uncorr.rds&quot;)
-pref                &lt;- readRDS(&quot;../output/estimates/pref.rds&quot;)
-
-## Export
-
-## replace getSummary function with one that will work with -gmnl-
-getSummary &lt;- getSummary.gmnl
-
-mtable(&quot;C-logit&quot;=pref_clogit,&quot;MXL Uncorrelated&quot;=pref_uncorr,&quot;MXL Correlated&quot;=pref,
-                    digits=3,
-                    summary.stats = c(&quot;N&quot;,&quot;Log-likelihood&quot;,&quot;AIC&quot;,&#39;BIC&#39;)) %&gt;%
-        relabel(.,sq = &quot;Status-Quo&quot;,
-              cov12 = &quot;Coverage: 12 Miles&quot;,
-              acc175 = &quot;Accuracy 1: 75%&quot;,
-              acc1100 = &quot;Accuracy 1: 100%&quot;,
-              acc275 = &quot;Accuracy 2: 75%&quot;,
-              acc2100 = &quot;Accuracy 2: 100%&quot;,
-              bid = &#39;Cost&#39;)</code></pre>
+summary(pref_clogit)</code></pre>
 <pre><code>## 
-## Calls:
-## C-logit: gmnl(formula = choice ~ sq + cov12 + acc175 + acc1100 + acc275 + 
-##     acc2100 + bid | 0, data = d, model = &quot;mnl&quot;, method = &quot;nr&quot;)
-## MXL Uncorrelated: gmnl(formula = choice ~ sq + cov12 + acc175 + acc1100 + acc275 + 
-##     acc2100 + bid | 0, data = d, model = &quot;mixl&quot;, ranp = c(cov12 = &quot;n&quot;, 
-##     acc175 = &quot;n&quot;, acc1100 = &quot;n&quot;, acc275 = &quot;n&quot;, acc2100 = &quot;n&quot;), 
-##     seed = 42, correlation = FALSE, panel = TRUE, method = &quot;bfgs&quot;)
-## MXL Correlated: gmnl(formula = choice ~ sq + cov12 + acc175 + acc1100 + acc275 + 
-##     acc2100 + bid | 0, data = d, model = &quot;mixl&quot;, ranp = c(cov12 = &quot;n&quot;, 
-##     acc175 = &quot;n&quot;, acc1100 = &quot;n&quot;, acc275 = &quot;n&quot;, acc2100 = &quot;n&quot;), 
-##     haltons = NA, seed = 42, correlation = TRUE, panel = TRUE, 
-##     method = &quot;bhhh&quot;, iterlim = 500)
+## Model estimated on: Wed Jan 13 3:01:20 PM 2021 
 ## 
-## ======================================================================
-##                         C-logit     MXL Uncorrelated  MXL Correlated  
-## ----------------------------------------------------------------------
-##   Status-Quo             -0.808***       -1.349***        -1.849***   
-##                          (0.100)         (0.141)          (0.162)     
-##   Coverage: 12 Miles      0.126           0.275            0.509***   
-##                          (0.090)         (0.156)          (0.152)     
-##   Accuracy 1: 75%         0.218           0.563**          0.822***   
-##                          (0.124)         (0.179)          (0.175)     
-##   Accuracy 1: 100%        0.861***        1.369***         1.703***   
-##                          (0.135)         (0.222)          (0.225)     
-##   Accuracy 2: 75%         0.214*          0.402**          0.354**    
-##                          (0.091)         (0.146)          (0.135)     
-##   Accuracy 2: 100%        0.024          -0.003            0.087      
-##                          (0.122)         (0.249)          (0.270)     
-##   Cost                   -0.045***       -0.091***        -0.103***   
-##                          (0.005)         (0.009)          (0.010)     
-##   sd.cov12                                1.877***                    
-##                                          (0.220)                      
-##   sd.acc175                               1.254***                    
-##                                          (0.265)                      
-##   sd.acc1100                              2.130***                    
-##                                          (0.220)                      
-##   sd.acc275                               0.735*                      
-##                                          (0.326)                      
-##   sd.acc2100                              3.006***                    
-##                                          (0.566)                      
-##   sd.cov12.cov12                                           2.129***   
-##                                                           (0.254)     
-##   sd.cov12.acc175                                          0.952***   
-##                                                           (0.236)     
-##   sd.cov12.acc1100                                         2.087***   
-##                                                           (0.281)     
-##   sd.cov12.acc275                                          0.197      
-##                                                           (0.243)     
-##   sd.cov12.acc2100                                         0.910      
-##                                                           (0.480)     
-##   sd.acc175.acc175                                         1.628***   
-##                                                           (0.315)     
-##   sd.acc175.acc1100                                        2.004***   
-##                                                           (0.333)     
-##   sd.acc175.acc275                                         0.196      
-##                                                           (0.256)     
-##   sd.acc175.acc2100                                        0.058      
-##                                                           (0.486)     
-##   sd.acc1100.acc1100                                       0.133      
-##                                                           (0.376)     
-##   sd.acc1100.acc275                                        0.226      
-##                                                           (0.450)     
-##   sd.acc1100.acc2100                                      -0.753      
-##                                                           (0.801)     
-##   sd.acc275.acc275                                         0.279      
-##                                                           (0.197)     
-##   sd.acc275.acc2100                                        3.361***   
-##                                                           (0.567)     
-##   sd.acc2100.acc2100                                      -0.310      
-##                                                           (0.681)     
-## ----------------------------------------------------------------------
-##   N                    1608            1608             1608          
-##   Log-likelihood      -1654.954       -1542.593        -1438.421      
-##   AIC                  3323.908        3109.186         2920.841      
-##   BIC                  3361.588        3173.779         3039.262      
-## ======================================================================
-##   Significance: *** = p &lt; 0.001; ** = p &lt; 0.01; * = p &lt; 0.05</code></pre>
-<p><br></p>
-<p>Model fit according to McFadden pseudo <span class="math inline">\(\rho^2\)</span>: <span class="math inline">\(1-\frac{LL_{full}}{LL_{null}}\)</span></p>
-<pre class="r"><code>## write function to recover McFadden&#39;s pseudo R2
-mcfad_r2 &lt;- function(x,y) {round(1-(as.numeric(logLik(x))/as.numeric(logLik(y))),2)}
-pref_clogit_r2 &lt;- mcfad_r2(pref_clogit,null_model)
-pref_uncorr_r2 &lt;- mcfad_r2(pref_uncorr,null_model)
-pref_r2        &lt;- mcfad_r2(pref,null_model)
-
-data.frame(row.names = &#39;McFadden \\(\\rho^2\\)&#39;,
-          &quot;MNL&quot;=pref_clogit_r2,&quot;MXL Uncorrelated&quot;=pref_uncorr_r2,&quot;MXL Correlated&quot;=pref_r2) %&gt;%
-           kbl() %&gt;% kable_classic(full_width = FALSE)</code></pre>
-<table class=" lightable-classic" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;">
-<thead>
-<tr>
-<th style="text-align:left;">
-</th>
-<th style="text-align:right;">
-MNL
-</th>
-<th style="text-align:right;">
-MXL.Uncorrelated
-</th>
-<th style="text-align:right;">
-MXL.Correlated
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-McFadden <span class="math inline">\(\rho^2\)</span>
-</td>
-<td style="text-align:right;">
-0.04
-</td>
-<td style="text-align:right;">
-0.1
-</td>
-<td style="text-align:right;">
-0.17
-</td>
-</tr>
-</tbody>
-</table>
-<p><br></p>
-<div id="standard-deviations-of-random-parameters" class="section level2" number="4.1">
-<h2><span class="header-section-number">4.1</span> Standard Deviations of Random Parameters</h2>
-<pre class="r"><code>####################################################
-###############################  STANDARD DEVIATIONS
-####################################################
-vcov(pref, what = &quot;ranp&quot;, type = &quot;sd&quot;, se = &quot;true&quot;)</code></pre>
-<pre><code>## 
-## Standard deviations of the random parameters 
+## Call:
+## gmnl(formula = choice ~ asc + cost + nature + farmland + food + 
+##     dist | 0, data = d, model = &quot;mnl&quot;, method = &quot;nr&quot;)
 ## 
-##         Estimate Std. Error z-value  Pr(&gt;|z|)    
-## cov12    2.12907    0.25399  8.3825 &lt; 2.2e-16 ***
-## acc175   1.88642    0.28565  6.6041 4.000e-11 ***
-## acc1100  2.89665    0.31809  9.1065 &lt; 2.2e-16 ***
-## acc275   0.45370    0.30445  1.4902    0.1362    
-## acc2100  3.57591    0.61119  5.8507 4.894e-09 ***
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-</div>
-<div id="correlation-coefficients-of-random-parameters" class="section level2" number="4.2">
-<h2><span class="header-section-number">4.2</span> Correlation Coefficients of Random Parameters</h2>
-<pre class="r"><code>####################################################
-################################  CORELLATION MATRIX
-####################################################
-vcov(pref, what = &quot;ranp&quot;, type = &quot;cor&quot;)</code></pre>
-<pre><code>##             cov12    acc175   acc1100    acc275   acc2100
-## cov12   1.0000000 0.5049128 0.7206581 0.4347215 0.2543821
-## acc175  0.5049128 1.0000000 0.9609783 0.5926936 0.1423637
-## acc1100 0.7206581 0.9609783 1.0000000 0.6352454 0.1847918
-## acc275  0.4347215 0.5926936 0.6352454 1.0000000 0.5898480
-## acc2100 0.2543821 0.1423637 0.1847918 0.5898480 1.0000000</code></pre>
-<p><br></p>
-</div>
-<div id="willingness-to-pay" class="section level2" number="4.3">
-<h2><span class="header-section-number">4.3</span> Willingness to Pay</h2>
-<pre class="r"><code>pref_clogit_wtp &lt;- wtp.gmnl(pref_clogit, wrt = &quot;bid&quot;)
-pref_uncorr_wtp &lt;- wtp.gmnl(pref_uncorr, wrt = &quot;bid&quot;)
-pref_wtp        &lt;- wtp.gmnl(pref, wrt = &quot;bid&quot;)</code></pre>
-<pre class="r"><code>## Write a function to make significance stars
-stars &lt;- function(x) {ifelse(x[,4]&lt;0.001,&#39;***&#39;,ifelse(x[,4]&lt;0.01 &amp; x[,4]&gt;=0.001,&#39;**&#39;,ifelse(x[,4]&lt;0.05 &amp; x[,4]&gt;=0.01,&#39;*&#39;,&#39;&#39;)))}
-
-## Write a function to create bounds on WTP
-ci &lt;- function(x,y) {paste0(&#39;[&#39;, round(x-(1.96*y[,2]),2), &#39;, &#39;, round(x+(1.96*y[,2]),2),&#39;]&#39;)}
-
-pref_clogit_wtp %&lt;&gt;% as.data.frame() %&gt;% slice(1:6) %&gt;%
-                     mutate(Estimate = Estimate*-1,
-                            stars = stars(.),
-                            CI = ci(Estimate,.),
-                            WTP = paste0(round(Estimate,2),stars),
-                            Attribute = rownames(.)) %&gt;%
-                     select(Attribute,WTP,CI) %&gt;%
-                     pivot_longer(WTP:CI) %&gt;%
-                     rename(&#39;MNL&#39;=value) %&gt;%
-                     mutate(Attribute = ifelse(name==&#39;CI&#39;,&#39;&#39;,Attribute)) %&gt;%
-                     select(1,3)
-
-pref_uncorr_wtp %&lt;&gt;% as.data.frame() %&gt;% slice(1:6) %&gt;%
-                     mutate(Estimate = Estimate*-1,
-                            stars = stars(.),
-                            CI = ci(Estimate,.),
-                            WTP = paste0(round(Estimate,2),stars),
-                            Attribute = rownames(.)) %&gt;%
-                     select(Attribute,WTP,CI) %&gt;%
-                     pivot_longer(WTP:CI) %&gt;%
-                     rename(&#39;MXL Uncorrelated&#39;=value) %&gt;%
-                     mutate(Attribute = ifelse(name==&#39;CI&#39;,&#39;&#39;,Attribute)) %&gt;%
-                     select(3)
-
-pref_wtp %&lt;&gt;% as.data.frame() %&gt;% slice(1:6) %&gt;%
-                     mutate(Estimate = Estimate*-1,
-                            stars = stars(.),
-                            CI = ci(Estimate,.),
-                            WTP = paste0(round(Estimate,2),stars),
-                            Attribute = rownames(.)) %&gt;%
-                     select(Attribute,WTP,CI) %&gt;%
-                     pivot_longer(WTP:CI) %&gt;%
-                     rename(&#39;MXL Correlated&#39;=value) %&gt;%
-                     mutate(Attribute = ifelse(name==&#39;CI&#39;,&#39;&#39;,Attribute)) %&gt;%
-                     select(3)
-
-wtp &lt;- cbind(pref_clogit_wtp,pref_uncorr_wtp,pref_wtp) %&gt;% 
-       mutate(Attribute = c(&quot;Status-Quo&quot;,&quot;&quot;,&quot;Coverage: 12 Miles&quot;,&quot;&quot;,&quot;Accuracy 1: 75%&quot;,&quot;&quot;,&quot;Accuracy 1: 100%&quot;,&quot;&quot;,&quot;Accuracy 2: 75%&quot;,&quot;&quot;,&quot;Accuracy 2: 100%&quot;,&quot;&quot;))
-
-kable(wtp, caption=&#39;Willingness to Pay from Preference-Space&#39;,booktabs = TRUE, align = c(&#39;l&#39;,&#39;c&#39;,&#39;c&#39;,&#39;c&#39;)) %&gt;% kable_classic() %&gt;% kable_styling(font_size = 16) %&gt;%
-      footnote(&#39;95% confidence intervals in brackets derived using the delta method. \\(^{*}\\)p&lt;0.1; \\(^{**}\\)p&lt;0.05; \\(^{***}\\)p&lt;0.01&#39;,footnote_as_chunk = T)</code></pre>
-<table class=" lightable-classic table" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; margin-left: auto; margin-right: auto; font-size: 16px; margin-left: auto; margin-right: auto;border-bottom: 0;">
-<caption style="font-size: initial !important;">
-<span id="tab:unnamed-chunk-9">Table 4.1: </span>Willingness to Pay from Preference-Space
-</caption>
-<thead>
-<tr>
-<th style="text-align:left;">
-Attribute
-</th>
-<th style="text-align:center;">
-MNL
-</th>
-<th style="text-align:center;">
-MXL Uncorrelated
-</th>
-<th style="text-align:center;">
-MXL Correlated
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-Status-Quo
-</td>
-<td style="text-align:center;">
--17.93***
-</td>
-<td style="text-align:center;">
--14.84***
-</td>
-<td style="text-align:center;">
--17.97***
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-[-23.03, -12.84]
-</td>
-<td style="text-align:center;">
-[-17.67, -12.01]
-</td>
-<td style="text-align:center;">
-[-20.7, -15.24]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Coverage: 12 Miles
-</td>
-<td style="text-align:center;">
-2.8
-</td>
-<td style="text-align:center;">
-3.02
-</td>
-<td style="text-align:center;">
-4.94***
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-[-0.84, 6.44]
-</td>
-<td style="text-align:center;">
-[-0.16, 6.2]
-</td>
-<td style="text-align:center;">
-[2.45, 7.44]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Accuracy 1: 75%
-</td>
-<td style="text-align:center;">
-4.84
-</td>
-<td style="text-align:center;">
-6.19**
-</td>
-<td style="text-align:center;">
-7.99***
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-[-0.43, 10.1]
-</td>
-<td style="text-align:center;">
-[2.49, 9.88]
-</td>
-<td style="text-align:center;">
-[4.69, 11.29]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Accuracy 1: 100%
-</td>
-<td style="text-align:center;">
-19.12***
-</td>
-<td style="text-align:center;">
-15.05***
-</td>
-<td style="text-align:center;">
-16.55***
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-[14.24, 24]
-</td>
-<td style="text-align:center;">
-[11.01, 19.09]
-</td>
-<td style="text-align:center;">
-[13.26, 19.85]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Accuracy 2: 75%
-</td>
-<td style="text-align:center;">
-4.75*
-</td>
-<td style="text-align:center;">
-4.42**
-</td>
-<td style="text-align:center;">
-3.44**
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-[0.74, 8.76]
-</td>
-<td style="text-align:center;">
-[1.35, 7.49]
-</td>
-<td style="text-align:center;">
-[0.92, 5.95]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Accuracy 2: 100%
-</td>
-<td style="text-align:center;">
-0.52
-</td>
-<td style="text-align:center;">
--0.04
-</td>
-<td style="text-align:center;">
-0.85
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-[-4.8, 5.85]
-</td>
-<td style="text-align:center;">
-[-5.41, 5.34]
-</td>
-<td style="text-align:center;">
-[-4.29, 5.98]
-</td>
-</tr>
-</tbody>
-<tfoot>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<span style="font-style: italic;">Note: </span> <sup></sup> 95% confidence intervals in brackets derived using the delta method. <span class="math inline">\(^{*}\)</span>p&lt;0.1; <span class="math inline">\(^{**}\)</span>p&lt;0.05; <span class="math inline">\(^{***}\)</span>p&lt;0.01
-</td>
-</tr>
-</tfoot>
-</table>
-<p><br></p>
-</div>
-</div>
-<div id="preference-heterogeneity" class="section level1" number="5">
-<h1><span class="header-section-number">5</span> Preference Heterogeneity</h1>
-<p>We introduce preference heterogeneity by interacting past environmental observations at the three nearest beaches to each respondent’s recorded zip code (inverse gravity distance weighting). These are averages for 2019 and the one month prior to when the respondent took the survey.</p>
-<ul>
-<li>Water color:
-<ul>
-<li>1 = Clear. Able to see the bottom in shallow water.</li>
-<li>2 = Moderate. A light tint.</li>
-<li>3 = Dark. Thick or murky water.</li>
-</ul></li>
-<li>Respiratory irritation:
-<ul>
-<li>1 = None. No coughing observed due to airborne toxins.</li>
-<li>2 = Slight. A few coughs/sneezes heard in 30 seconds.</li>
-<li>3 = Moderate. A cough/sneeze heard every 5 seconds.</li>
-<li>4 = High. Coughing/sneezing heard almost continuously.</li>
-</ul></li>
-</ul>
-<p>All models assume fully correlated random parameters, with <em>bid</em> fixed.</p>
-<pre class="r"><code>## Models executed in 2_analyze_preferencespace.R
-
-####################################################
-#######################################  WATER COLOR
-####################################################
-
-pref_het_water &lt;-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid + sq_watercolor2019 + sq_watercolor_1m | 0 ,
-                   data=d,
-                   ranp=c(cov12=&#39;n&#39;,acc175=&#39;n&#39;,acc1100=&#39;n&#39;,acc275=&#39;n&#39;,acc2100=&#39;n&#39;,sq_watercolor2019=&#39;n&#39;,sq_watercolor_1m=&#39;n&#39;),
-                   model=&#39;mixl&#39;,
-                   panel=TRUE,
-                   correlation=TRUE,
-                   seed=42,
-                   method = &quot;bhhh&quot;,
-                   iterlim = 500,
-                   halton=NA)
-
-####################################################
-##############  WATER COLOR AND RESPIRATORY WARNINGS
-####################################################
-
-pref_het_water_resp &lt;-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid + sq_watercolor2019 + sq_watercolor_1m + sq_respirr2019 + sq_respirr_1m | 0 ,
-                        data=d,
-                        ranp=c(cov12=&#39;n&#39;,acc175=&#39;n&#39;,acc1100=&#39;n&#39;,acc275=&#39;n&#39;,acc2100=&#39;n&#39;,sq_watercolor2019=&#39;n&#39;,sq_watercolor_1m=&#39;n&#39;,sq_respirr2019=&#39;n&#39;,sq_respirr_1m=&#39;n&#39;),
-                        model=&#39;mixl&#39;,
-                        panel=TRUE,
-                        correlation=TRUE,
-                        seed=42,
-                        method = &quot;bhhh&quot;,
-                        iterlim = 500,
-                        halton=NA)
-
-####################################################
-#########  WATER COLOR AND RESPIRATORY WARNINGS 2019
-####################################################
-
-pref_het_water_resp_2019 &lt;-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid + sq_watercolor2019 + sq_respirr2019 | 0 ,
-                             data=d,
-                             ranp=c(cov12=&#39;n&#39;,acc175=&#39;n&#39;,acc1100=&#39;n&#39;,acc275=&#39;n&#39;,acc2100=&#39;n&#39;,sq_watercolor2019=&#39;n&#39;,sq_respirr2019=&#39;n&#39;),
-                             model=&#39;mixl&#39;,
-                             panel=TRUE,
-                             correlation=TRUE,
-                             seed=42,
-                             method = &quot;bhhh&quot;,
-                             iterlim = 500,
-                             halton=NA)
-
-####################################################
-######  WATER COLOR AND RESPIRATORY WARNINGS 1 MONTH
-####################################################
-
-pref_het_water_resp_1m &lt;-  gmnl(choice ~ sq + cov12 + acc175 + acc1100 + acc275 + acc2100 + bid + sq_watercolor_1m + sq_respirr_1m | 0 ,
-                             data=d,
-                             ranp=c(cov12=&#39;n&#39;,acc175=&#39;n&#39;,acc1100=&#39;n&#39;,acc275=&#39;n&#39;,acc2100=&#39;n&#39;,sq_watercolor_1m=&#39;n&#39;,sq_respirr_1m=&#39;n&#39;),
-                             model=&#39;mixl&#39;,
-                             panel=TRUE,
-                             correlation=TRUE,
-                             seed=42,
-                             method = &quot;bhhh&quot;,
-                             iterlim = 500,
-                             halton=NA)</code></pre>
-<pre class="r"><code>## LOAD PREFERENCE SPACE MODELS
-pref                &lt;- readRDS(&quot;../output/estimates/pref.rds&quot;)
-pref_het_water      &lt;- readRDS(&quot;../output/estimates/pref_het_water.rds&quot;)
-pref_het_water_resp &lt;- readRDS(&quot;../output/estimates/pref_het_water_resp.rds&quot;)
-
-## Export
-mtable(&quot;MXL&quot;=pref,&quot;MXL Water Color&quot;=pref_het_water,&quot;MXL Water and Respiratory&quot;=pref_het_water_resp,
-                    digits=3,
-                    summary.stats = c(&quot;N&quot;,&quot;Log-likelihood&quot;,&quot;AIC&quot;,&#39;BIC&#39;)) %&gt;%
-  relabel(.,sq = &quot;Status-Quo&quot;,
-        cov12 = &quot;Coverage: 12 Miles&quot;,
-        acc175 = &quot;Accuracy 1: 75%&quot;,
-        acc1100 = &quot;Accuracy 1: 100%&quot;,
-        acc275 = &quot;Accuracy 2: 75%&quot;,
-        acc2100 = &quot;Accuracy 2: 100%&quot;,
-        sq_watercolor2019 = &#39;Mean Water Clarity 2019&#39;,
-        sq_watercolor_1m  = &#39;Mean Water Clarity 1 Month&#39;,
-        sq_respirr2019  = &#39;Mean Respiratory Quality 2019&#39;,
-        sq_respirr_1m  = &#39;Mean Respiratory Quality 1 Month&#39;)</code></pre>
-<pre><code>## 
-## Calls:
-## MXL: gmnl(formula = choice ~ sq + cov12 + acc175 + acc1100 + acc275 + 
-##     acc2100 + bid | 0, data = d, model = &quot;mixl&quot;, ranp = c(cov12 = &quot;n&quot;, 
-##     acc175 = &quot;n&quot;, acc1100 = &quot;n&quot;, acc275 = &quot;n&quot;, acc2100 = &quot;n&quot;), 
-##     haltons = NA, seed = 42, correlation = TRUE, panel = TRUE, 
-##     method = &quot;bhhh&quot;, iterlim = 500)
-## MXL Water Color: gmnl(formula = choice ~ sq + cov12 + acc175 + acc1100 + acc275 + 
-##     acc2100 + bid + sq_watercolor2019 + sq_watercolor_1m | 0, 
-##     data = d, model = &quot;mixl&quot;, ranp = c(cov12 = &quot;n&quot;, acc175 = &quot;n&quot;, 
-##         acc1100 = &quot;n&quot;, acc275 = &quot;n&quot;, acc2100 = &quot;n&quot;, sq_watercolor2019 = &quot;n&quot;, 
-##         sq_watercolor_1m = &quot;n&quot;), haltons = NA, seed = 42, correlation = TRUE, 
-##     panel = TRUE, method = &quot;bhhh&quot;, iterlim = 500)
-## MXL Water and Respiratory: gmnl(formula = choice ~ sq + cov12 + acc175 + acc1100 + acc275 + 
-##     acc2100 + bid + sq_watercolor2019 + sq_watercolor_1m + sq_respirr2019 + 
-##     sq_respirr_1m | 0, data = d, model = &quot;mixl&quot;, ranp = c(cov12 = &quot;n&quot;, 
-##     acc175 = &quot;n&quot;, acc1100 = &quot;n&quot;, acc275 = &quot;n&quot;, acc2100 = &quot;n&quot;, 
-##     sq_watercolor2019 = &quot;n&quot;, sq_watercolor_1m = &quot;n&quot;, sq_respirr2019 = &quot;n&quot;, 
-##     sq_respirr_1m = &quot;n&quot;), haltons = NA, seed = 42, correlation = TRUE, 
-##     panel = TRUE, method = &quot;bhhh&quot;, iterlim = 500)
+## Frequencies of categories:
 ## 
-## ====================================================================================================
-##                                               MXL       MXL Water Color  MXL Water and Respiratory  
-## ----------------------------------------------------------------------------------------------------
-##   Status-Quo                                 -1.849***       4.049**            -345.190***         
-##                                              (0.162)        (1.493)              (72.540)           
-##   bid                                        -0.103***      -0.116***             -0.145***         
-##                                              (0.010)        (0.012)               (0.015)           
-##   Coverage: 12 Miles                          0.509***       0.755***              1.052***         
-##                                              (0.152)        (0.204)               (0.245)           
-##   Accuracy 1: 75%                             0.822***       1.016***              1.100***         
-##                                              (0.175)        (0.259)               (0.301)           
-##   Accuracy 1: 100%                            1.703***       2.211***              2.643***         
-##                                              (0.225)        (0.329)               (0.380)           
-##   Accuracy 2: 75%                             0.354**        0.432**               0.517**          
-##                                              (0.135)        (0.154)               (0.176)           
-##   Accuracy 2: 100%                            0.087         -0.070                -0.061            
-##                                              (0.270)        (0.344)               (0.418)           
-##   sd.cov12.cov12                              2.129***       2.339***              3.162***         
-##                                              (0.254)        (0.329)               (0.400)           
-##   sd.cov12.acc175                             0.952***       0.883*                1.132**          
-##                                              (0.236)        (0.371)               (0.436)           
-##   sd.cov12.acc1100                            2.087***       2.174***              2.776***         
-##                                              (0.281)        (0.397)               (0.454)           
-##   sd.cov12.acc275                             0.197          0.412                 0.717*           
-##                                              (0.243)        (0.279)               (0.312)           
-##   sd.cov12.acc2100                            0.910          1.377*                1.404            
-##                                              (0.480)        (0.650)               (0.717)           
-##   sd.acc175.acc175                            1.628***       2.213***              3.378***         
-##                                              (0.315)        (0.443)               (0.539)           
-##   sd.acc175.acc1100                           2.004***       2.397***              3.332***         
-##                                              (0.333)        (0.439)               (0.511)           
-##   sd.acc175.acc275                            0.196         -0.045                -0.327            
-##                                              (0.256)        (0.247)               (0.247)           
-##   sd.acc175.acc2100                           0.058         -2.200***             -3.139***         
-##                                              (0.486)        (0.550)               (0.633)           
-##   sd.acc1100.acc1100                          0.133          0.568*                1.323***         
-##                                              (0.376)        (0.256)               (0.256)           
-##   sd.acc1100.acc275                           0.226          0.877**               1.095***         
-##                                              (0.450)        (0.296)               (0.254)           
-##   sd.acc1100.acc2100                         -0.753          0.920                 0.606            
-##                                              (0.801)        (0.524)               (0.535)           
-##   sd.acc275.acc275                            0.279         -0.327                -0.518*           
-##                                              (0.197)        (0.229)               (0.256)           
-##   sd.acc275.acc2100                           3.361***      -4.122***             -5.100***         
-##                                              (0.567)        (0.730)               (0.884)           
-##   sd.acc2100.acc2100                         -0.310         -2.754***             -4.225***         
-##                                              (0.681)        (0.672)               (0.891)           
-##   Mean Water Clarity 2019                                   -0.354                 1.644            
-##                                                             (1.563)               (1.870)           
-##   Mean Water Clarity 1 Month                                -4.280*                4.947*           
-##                                                             (1.721)               (1.990)           
-##   sd.cov12.sq_watercolor2019                                 1.265                 9.322***         
-##                                                             (1.423)               (2.375)           
-##   sd.cov12.sq_watercolor_1m                                 -1.199                -3.355            
-##                                                             (1.582)               (2.202)           
-##   sd.acc175.sq_watercolor2019                                5.764***             -1.367            
-##                                                             (1.458)               (2.031)           
-##   sd.acc175.sq_watercolor_1m                                -5.190***             -5.414**          
-##                                                             (1.564)               (1.872)           
-##   sd.acc1100.sq_watercolor2019                               6.030***             11.152***         
-##                                                             (1.522)               (2.170)           
-##   sd.acc1100.sq_watercolor_1m                               -6.160***             -1.895            
-##                                                             (1.656)               (2.022)           
-##   sd.acc275.sq_watercolor2019                                7.575***              8.681**          
-##                                                             (1.656)               (2.742)           
-##   sd.acc275.sq_watercolor_1m                                -8.683***             -8.763**          
-##                                                             (1.856)               (2.831)           
-##   sd.acc2100.sq_watercolor2019                             -15.637***            -12.241***         
-##                                                             (2.262)               (2.825)           
-##   sd.acc2100.sq_watercolor_1m                               19.076***             -2.251            
-##                                                             (2.658)               (2.243)           
-##   sd.sq_watercolor2019.sq_watercolor2019                    -3.058               -10.847***         
-##                                                             (2.179)               (2.988)           
-##   sd.sq_watercolor2019.sq_watercolor_1m                      5.737*                5.506*           
-##                                                             (2.449)               (2.565)           
-##   sd.sq_watercolor_1m.sq_watercolor_1m                       0.403*               -5.032**          
-##                                                             (0.168)               (1.885)           
-##   Mean Respiratory Quality 2019                                                 -111.053***         
-##                                                                                  (29.747)           
-##   Mean Respiratory Quality 1 Month                                               445.577***         
-##                                                                                  (77.803)           
-##   sd.cov12.sq_respirr2019                                                        -47.464**          
-##                                                                                  (18.009)           
-##   sd.cov12.sq_respirr_1m                                                          38.523*           
-##                                                                                  (18.536)           
-##   sd.acc175.sq_respirr2019                                                       -41.004**          
-##                                                                                  (12.713)           
-##   sd.acc175.sq_respirr_1m                                                         57.136***         
-##                                                                                  (14.652)           
-##   sd.acc1100.sq_respirr2019                                                      -24.404            
-##                                                                                  (14.584)           
-##   sd.acc1100.sq_respirr_1m                                                         9.634            
-##                                                                                  (15.579)           
-##   sd.acc275.sq_respirr2019                                                       -31.700*           
-##                                                                                  (12.891)           
-##   sd.acc275.sq_respirr_1m                                                         30.667*           
-##                                                                                  (13.038)           
-##   sd.acc2100.sq_respirr2019                                                      100.527***         
-##                                                                                  (27.383)           
-##   sd.acc2100.sq_respirr_1m                                                       -75.576**          
-##                                                                                  (27.276)           
-##   sd.sq_watercolor2019.sq_respirr2019                                             18.048            
-##                                                                                  (22.697)           
-##   sd.sq_watercolor2019.sq_respirr_1m                                              -5.259            
-##                                                                                  (24.129)           
-##   sd.sq_watercolor_1m.sq_respirr2019                                              49.079*           
-##                                                                                  (20.754)           
-##   sd.sq_watercolor_1m.sq_respirr_1m                                              -40.282            
-##                                                                                  (21.084)           
-##   sd.sq_respirr2019.sq_respirr2019                                               -19.682            
-##                                                                                  (18.002)           
-##   sd.sq_respirr2019.sq_respirr_1m                                                 21.389            
-##                                                                                  (18.808)           
-##   sd.sq_respirr_1m.sq_respirr_1m                                                  -1.558***         
-##                                                                                   (0.312)           
-## ----------------------------------------------------------------------------------------------------
-##   N                                        1608           1608                  1608                
-##   Log-likelihood                          -1438.421      -1352.933             -1319.158            
-##   AIC                                      2920.841       2779.865              2750.316            
-##   BIC                                      3039.262       2979.027              3051.750            
-## ====================================================================================================
-##   Significance: *** = p &lt; 0.001; ** = p &lt; 0.01; * = p &lt; 0.05</code></pre>
-<p><br></p>
-<p>Model fit according to McFadden pseudo <span class="math inline">\(\rho^2\)</span>: <span class="math inline">\(1-\frac{LL_{full}}{LL_{null}}\)</span></p>
-<pre class="r"><code>pref_r2                 &lt;- mcfad_r2(pref,null_model)
-pref_het_water_r2       &lt;- mcfad_r2(pref_het_water,null_model)
-pref_het_water_resp_r2  &lt;- mcfad_r2(pref_het_water_resp,null_model)
-
-
-data.frame(row.names = &#39;McFadden \\(\\rho^2\\)&#39;,
-          &quot;MXL Correlated&quot;=pref_r2,&quot;MXL Water Color&quot;=pref_het_water_r2,&quot;MXL Water and Respiratory&quot;=pref_het_water_resp_r2) %&gt;%
-    kbl() %&gt;% kable_classic(full_width = FALSE)</code></pre>
-<table class=" lightable-classic" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;">
-<thead>
-<tr>
-<th style="text-align:left;">
-</th>
-<th style="text-align:right;">
-MXL.Correlated
-</th>
-<th style="text-align:right;">
-MXL.Water.Color
-</th>
-<th style="text-align:right;">
-MXL.Water.and.Respiratory
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-McFadden <span class="math inline">\(\rho^2\)</span>
-</td>
-<td style="text-align:right;">
-0.17
-</td>
-<td style="text-align:right;">
-0.21
-</td>
-<td style="text-align:right;">
-0.23
-</td>
-</tr>
-</tbody>
-</table>
-<p><br></p>
-<div id="willingness-to-pay-with-status-quo-heterogeneity" class="section level2" number="5.1">
-<h2><span class="header-section-number">5.1</span> Willingness to Pay with Status Quo Heterogeneity</h2>
-<pre class="r"><code>pref_wtp                 &lt;- wtp.gmnl(pref, wrt = &quot;bid&quot;)
-pref_het_water_wtp       &lt;- wtp.gmnl(pref_het_water, wrt = &quot;bid&quot;)
-pref_het_water_resp_wtp  &lt;- wtp.gmnl(pref_het_water_resp, wrt = &quot;bid&quot;)</code></pre>
-<pre class="r"><code>## Write a function to make significance stars
-stars &lt;- function(x) {ifelse(x[,4]&lt;0.001,&#39;***&#39;,ifelse(x[,4]&lt;0.01 &amp; x[,4]&gt;=0.001,&#39;**&#39;,ifelse(x[,4]&lt;0.05 &amp; x[,4]&gt;=0.01,&#39;*&#39;,&#39;&#39;)))}
-
-## Write a function to create bounds on WTP
-ci &lt;- function(x,y) {paste0(&#39;[&#39;, round(x-(1.96*y[,2]),2), &#39;, &#39;, round(x+(1.96*y[,2]),2),&#39;]&#39;)}
-
-pref_wtp %&lt;&gt;% as.data.frame() %&gt;% slice(1:6) %&gt;%
-                     mutate(Estimate = Estimate*-1,
-                            stars = stars(.),
-                            CI = ci(Estimate,.),
-                            WTP = paste0(round(Estimate,2),stars),
-                            Attribute = rownames(.)) %&gt;%
-                     select(Attribute,WTP,CI) %&gt;%
-                     pivot_longer(WTP:CI) %&gt;%
-                     rename(&#39;MXL Correlated&#39;=value) %&gt;%
-                     mutate(Attribute = ifelse(name==&#39;CI&#39;,&#39;&#39;,Attribute)) %&gt;%
-                     select(1,3)
-
-pref_het_water_wtp %&lt;&gt;% as.data.frame() %&gt;% slice(1:8) %&gt;%
-                     mutate(Estimate = Estimate*-1,
-                            stars = stars(.),
-                            CI = ci(Estimate,.),
-                            WTP = paste0(round(Estimate,2),stars),
-                            Attribute = rownames(.)) %&gt;%
-                     select(Attribute,WTP,CI) %&gt;%
-                     pivot_longer(WTP:CI) %&gt;%
-                     rename(&#39;MXL Water Color&#39;=value) %&gt;%
-                     mutate(Attribute = ifelse(name==&#39;CI&#39;,&#39;&#39;,Attribute)) %&gt;%
-                     select(3)
-
-pref_het_water_resp_wtp %&lt;&gt;% as.data.frame() %&gt;% slice(1:10) %&gt;%
-                     mutate(Estimate = Estimate*-1,
-                            stars = stars(.),
-                            CI = ci(Estimate,.),
-                            WTP = paste0(round(Estimate,2),stars),
-                            Attribute = rownames(.)) %&gt;%
-                     select(Attribute,WTP,CI) %&gt;%
-                     pivot_longer(WTP:CI) %&gt;%
-                     rename(&#39;MXL Water and Respiratory&#39;=value) %&gt;%
-                     mutate(Attribute = ifelse(name==&#39;CI&#39;,&#39;&#39;,Attribute)) %&gt;%
-                     select(3)
-
-wtp &lt;- qpcR:::cbind.na(pref_wtp,pref_het_water_wtp,pref_het_water_resp_wtp) %&gt;% 
-       mutate(Attribute = c(&quot;Status-Quo&quot;,&quot;&quot;,&quot;Coverage: 12 Miles&quot;,&quot;&quot;,&quot;Accuracy 1: 75%&quot;,&quot;&quot;,&quot;Accuracy 1: 100%&quot;,&quot;&quot;,&quot;Accuracy 2: 75%&quot;,&quot;&quot;,&quot;Accuracy 2: 100%&quot;,&quot;&quot;,&quot;Mean Water Clarity 2019&quot;,&quot;&quot;,&quot;Mean Water Clarity 1 Month&quot;,&quot;&quot;,&quot;Mean Respiratory Quality 2019&quot;,&quot;&quot;,&quot;Mean Respiratory Quality 1 Month&quot;,&quot;&quot;))
-wtp[is.na(wtp)] &lt;- &quot; &quot;
-
-kable(wtp, caption=&#39;Willingness to Pay from Preference-Space&#39;,booktabs = TRUE, align = c(&#39;l&#39;,&#39;c&#39;,&#39;c&#39;,&#39;c&#39;)) %&gt;% kable_classic() %&gt;% kable_styling(font_size = 16) %&gt;%
-  footnote(&#39;95% confidence intervals in brackets derived using the delta method. \\(^{*}\\)p&lt;0.1; \\(^{**}\\)p&lt;0.05; \\(^{***}\\)p&lt;0.01&#39;,footnote_as_chunk = T)</code></pre>
-<table class=" lightable-classic table" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; margin-left: auto; margin-right: auto; font-size: 16px; margin-left: auto; margin-right: auto;border-bottom: 0;">
-<caption style="font-size: initial !important;">
-<span id="tab:unnamed-chunk-14">Table 5.1: </span>Willingness to Pay from Preference-Space
-</caption>
-<thead>
-<tr>
-<th style="text-align:left;">
-Attribute
-</th>
-<th style="text-align:center;">
-MXL Correlated
-</th>
-<th style="text-align:center;">
-MXL Water Color
-</th>
-<th style="text-align:center;">
-MXL Water and Respiratory
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-Status-Quo
-</td>
-<td style="text-align:center;">
--17.97***
-</td>
-<td style="text-align:center;">
-34.87**
-</td>
-<td style="text-align:center;">
--2381.01***
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-[-20.7, -15.24]
-</td>
-<td style="text-align:center;">
-[9.21, 60.52]
-</td>
-<td style="text-align:center;">
-[-3310.32, -1451.7]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Coverage: 12 Miles
-</td>
-<td style="text-align:center;">
-4.94***
-</td>
-<td style="text-align:center;">
-6.51***
-</td>
-<td style="text-align:center;">
-7.26***
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-[2.45, 7.44]
-</td>
-<td style="text-align:center;">
-[3.73, 9.28]
-</td>
-<td style="text-align:center;">
-[4.65, 9.86]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Accuracy 1: 75%
-</td>
-<td style="text-align:center;">
-7.99***
-</td>
-<td style="text-align:center;">
-8.75***
-</td>
-<td style="text-align:center;">
-7.59***
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-[4.69, 11.29]
-</td>
-<td style="text-align:center;">
-[4.69, 12.81]
-</td>
-<td style="text-align:center;">
-[3.81, 11.37]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Accuracy 1: 100%
-</td>
-<td style="text-align:center;">
-16.55***
-</td>
-<td style="text-align:center;">
-19.03***
-</td>
-<td style="text-align:center;">
-18.23***
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-[13.26, 19.85]
-</td>
-<td style="text-align:center;">
-[15.1, 22.96]
-</td>
-<td style="text-align:center;">
-[14.7, 21.76]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Accuracy 2: 75%
-</td>
-<td style="text-align:center;">
-3.44**
-</td>
-<td style="text-align:center;">
-3.72**
-</td>
-<td style="text-align:center;">
-3.57**
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-[0.92, 5.95]
-</td>
-<td style="text-align:center;">
-[1.14, 6.3]
-</td>
-<td style="text-align:center;">
-[1.21, 5.92]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Accuracy 2: 100%
-</td>
-<td style="text-align:center;">
-0.85
-</td>
-<td style="text-align:center;">
--0.6
-</td>
-<td style="text-align:center;">
--0.42
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-[-4.29, 5.98]
-</td>
-<td style="text-align:center;">
-[-6.41, 5.2]
-</td>
-<td style="text-align:center;">
-[-6.08, 5.24]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Mean Water Clarity 2019
-</td>
-<td style="text-align:center;">
-</td>
-<td style="text-align:center;">
--3.05
-</td>
-<td style="text-align:center;">
-11.34
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-</td>
-<td style="text-align:center;">
-[-29.47, 23.37]
-</td>
-<td style="text-align:center;">
-[-13.64, 36.32]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Mean Water Clarity 1 Month
-</td>
-<td style="text-align:center;">
-</td>
-<td style="text-align:center;">
--36.85*
-</td>
-<td style="text-align:center;">
-34.12*
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-</td>
-<td style="text-align:center;">
-[-65.64, -8.07]
-</td>
-<td style="text-align:center;">
-[6.89, 61.36]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Mean Respiratory Quality 2019
-</td>
-<td style="text-align:center;">
-</td>
-<td style="text-align:center;">
-</td>
-<td style="text-align:center;">
--766***
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-</td>
-<td style="text-align:center;">
-</td>
-<td style="text-align:center;">
-[-1162.01, -370]
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Mean Respiratory Quality 1 Month
-</td>
-<td style="text-align:center;">
-</td>
-<td style="text-align:center;">
-</td>
-<td style="text-align:center;">
-3073.45***
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-</td>
-<td style="text-align:center;">
-</td>
-<td style="text-align:center;">
-</td>
-<td style="text-align:center;">
-[2091.26, 4055.64]
-</td>
-</tr>
-</tbody>
-<tfoot>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<span style="font-style: italic;">Note: </span> <sup></sup> 95% confidence intervals in brackets derived using the delta method. <span class="math inline">\(^{*}\)</span>p&lt;0.1; <span class="math inline">\(^{**}\)</span>p&lt;0.05; <span class="math inline">\(^{***}\)</span>p&lt;0.01
-</td>
-</tr>
-</tfoot>
-</table>
+##       1       2 
+## 0.49688 0.50313 
+## 
+## The estimation took: 0h:0m:1s 
+## 
+## Coefficients:
+##             Estimate  Std. Error z-value Pr(&gt;|z|)
+## asc      -7.2956e-04  6.9368e+03  0.0000   1.0000
+## cost      1.2008e-04  8.5177e-04  0.1410   0.8879
+## nature   -1.3811e-04  4.3355e+01  0.0000   1.0000
+## farmland  6.4317e-05  4.3355e+01  0.0000   1.0000
+## food      5.8352e-02  5.7748e-02  1.0105   0.3123
+## dist     -1.3714e-03  1.6746e-03 -0.8189   0.4128
+## 
+## Optimization of log-likelihood by Newton-Raphson maximisation
+## Log Likelihood: -3326
+## Number of observations: 4800
+## Number of iterations: 2
+## Exit of MLE: gradient close to zero (gradtol)</code></pre>
+</div>
+<div id="random-parameter-logit" class="section level2" number="4.3">
+<h2><span class="header-section-number">4.3</span> Random Parameter Logit</h2>
+<p><span class="math display">\[V_{it} = ACS + \lambda_i cost_{it} + \beta_{i1} nature + \beta_{i2} farmland + \beta_{i3} food + \beta_{i4} distance + \varepsilon_{it}\]</span></p>
 </div>
 </div>
 

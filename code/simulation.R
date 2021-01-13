@@ -64,6 +64,9 @@ data %<>% mutate(asc = ifelse(alt==2,1,0))
 ## Generate interactions
 data %<>% mutate(food_fruit = food * fruit)
 
+## Write to CSV 
+write_csv(data,'store/simulation_data.csv')
+
 ## Create mlogit data
 d <-  mlogit.data(data,
                   # shape='long', 

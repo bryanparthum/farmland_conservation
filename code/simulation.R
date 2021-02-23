@@ -62,7 +62,8 @@ data %<>% group_by(ind_card_id) %>%
 data %<>% mutate(asc = ifelse(alt==2,1,0))
 
 ## Generate interactions
-data %<>% mutate(food_fruit = food * fruit)
+data %<>% mutate(distance_nature = distance * nature)
+data %<>% mutate(distance_meals_nature = distance * meals_nature)
 
 ## Write to CSV 
 write_csv(data,'store/simulation_data.csv')
@@ -84,43 +85,49 @@ d <-  mlogit.data(data,
 
 null_model <- mlogit(choice ~ asc | 0 , data=d)
 summary(null_model)
-saveRDS(null_model,file="output/estimates/null_model.rds")
 
 ####################################################
 #############################################  BASIC
 ####################################################
 
-pref_clogit <-  gmnl(choice ~ asc + cost + nature + farmland + food + dist | 0 ,
+pref_clogit <-  gmnl(choice ~ asc + cost + farmland + meals_nature + distance | 0 ,
                      data=d,
                      model='mnl')
 
 summary(pref_clogit)
-saveRDS(pref_clogit,file="output/estimates/pref_clogit.rds")
 
 ## WTP
-pref_clogit_wtp <- wtp.gmnl(pref_clogit, wrt = "bid")
-saveRDS(pref_clogit_wtp,file="output/estimates/pref_clogit_wtp.rds")
+pref_clogit_wtp <- wtp.gmnl(pref_clogit, wrt = "cost")
 
 ####################################################
-#######################  INTRODUCE RANDOM PARAMETERS
+######################################  INTERACTIONS
 ####################################################
 
-start <- proc.time()
-pref_uncorr <-  gmnl(choice ~ asc + cost + nature + farmland + food + dist | 0 ,
-                    data=d,
-                    ranp=c(cost='n',nature='n',farmland='n',food='n',dist='n'),
-                    model='mixl',
-                    panel=TRUE,
-                    correlation=FALSE,
-                    seed=42)
+pref_clogit <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + distance + distance_nature + distance_meals_nature | 0 ,
+                     data=d,
+                     model='mnl')
 
-summary(pref_uncorr)
-saveRDS(pref_uncorr,file="output/estimates/pref_uncorr.rds")
-proc.time() - start
+summary(pref_clogit)
 
 ## WTP
-pref_uncorr_wtp <- wtp.gmnl(pref_uncorr, wrt = "bid")
-saveRDS(pref_uncorr_wtp,file="output/estimates/pref_uncorr_wtp.rds")
+pref_clogit_wtp <- wtp.gmnl(pref_clogit, wrt = "cost")
+
+# ####################################################
+# #######################  INTRODUCE RANDOM PARAMETERS
+# ####################################################
+# 
+# pref_uncorr <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + distance | 0 ,
+#                     data=d,
+#                     ranp=c(cost='n',nature='n',farmland='n',meals_nature='n',meals_farmland='n',distance='n'),
+#                     model='mixl',
+#                     panel=TRUE,
+#                     correlation=FALSE,
+#                     seed=42)
+# 
+# summary(pref_uncorr)
+# 
+# ## WTP
+# pref_uncorr_wtp <- wtp.gmnl(pref_uncorr, wrt = "bid")
 
 ####################################################
 #################################  ASC HETEROGENEITY

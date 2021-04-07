@@ -6,25 +6,14 @@
 
 clear all
 set more off
+set seed 42
 
 // ** INSTALL PACKAGE TO CREATE D-EFFICIENT DESIGN
 // sysdir set PLUS "C:\Users\bparthum\OneDrive - Environmental Protection Agency (EPA)\software\stata\ado\plus"
 // sysdir set PERSONAL "C:\Users\bparthum\OneDrive - Environmental Protection Agency (EPA)\software\stata\ado\personal"
 // sysdir set OLDPLACE "C:\Users\bparthum\OneDrive - Environmental Protection Agency (EPA)\software\stata\ado"
 // ssc install dcreate
-
-// use N_dominated, clear
-// while N_dominated > 0 { 
-// qui{
-//
-// clear all
-// set more off
-
-// local rand = runiformint(0,20000) 
-// set seed `rand' 
-// display c(seed) 
-set seed 42
-
+ 
 *****************************************
 ********  CONSTRUCT FULL FACTORIAL MATRIX 
 *****************************************
@@ -68,28 +57,28 @@ recode distance 	  (1=5) (2=15)  (3=40)
 **********************  IMPOSE CONDITIONS
 *****************************************
 
-drop if nature + farmland > 120
+// drop if nature + farmland > 120
 
 *****************************************
 **************************  IMPOSE PRIORS
 *****************************************
 
 matrix status_quo = 0,0,0,0,0,0
-matrix betas = J(1,26,0)
+matrix betas = J(1,36,0)
 
 *****************************************
 ********************  GENERATE EXPERIMENT
 *****************************************
 
 dcreate i.cost ///
-		i.nature ///
-		i.meals_nature ///
+		i.distance##i.nature ///
 		i.distance##i.farmland ///
+		i.distance##i.meals_nature ///
 		i.distance##i.meals_farmland, ///
 		nalt(1) ///
 		nset(48) ///
 		bmat(betas) ///
-		seed(125612434) ///
+		seed(42) ///
 		fixedalt(status_quo) ///
 		asc(2)
 

@@ -45,7 +45,10 @@ design_matrix_miles <- data %>%
                               miles = paste(distance,'','miles')) %>%
                        group_by(block) %>%
                        distinct(cost,nature,farmland,meals_nature,meals_farmland,miles) %>%
-                       arrange(factor(block, levels = c('Status Quo',1,2,3,4,5,6)))
+                       arrange(factor(block, levels = c('Status Quo',1,2,3,4,5,6))) %>% 
+                       mutate(card = seq(n())) %>%
+                       mutate(card = ifelse(block=='Status Quo',0,card)) %>% 
+                       ungroup()
 
 design_matrix_minutes <- data %>%
                          filter(treatment=="time") %>%
@@ -53,10 +56,12 @@ design_matrix_minutes <- data %>%
                                 minutes = paste(distance,'','minutes')) %>%    
                          group_by(block) %>%
                        distinct(cost,nature,farmland,meals_nature,meals_farmland,minutes) %>%
-                         arrange(factor(block, levels = c('Status Quo',1,2,3,4,5,6))) %>%
-                         ungroup()
+                         arrange(factor(block, levels = c('Status Quo',1,2,3,4,5,6))) %>% 
+                       mutate(card = seq(n())) %>%
+                       mutate(card = ifelse(block=='Status Quo',0,card)) %>% 
+                       ungroup()
 
-design_matrix <- cbind(design_matrix_miles, (design_matrix_minutes %<>% select(minutes))) %>% relocate(minutes, .after = miles)
+design_matrix <- cbind(design_matrix_miles, (design_matrix_minutes %<>% select(minutes))) %>% relocate(minutes, .after = miles) %>% relocate(card, .after = block)
 
 kable(design_matrix, caption='Unique alternatives in each of the 6 blocks',booktabs = TRUE, align = c('l','c','c','c')) %>% kable_classic() %>% kable_styling(font_size = 16) %>%
       footnote('There are two treatments (minutes and miles) that have identical designs',footnote_as_chunk = T)
@@ -64,7 +69,7 @@ kable(design_matrix, caption='Unique alternatives in each of the 6 blocks',bookt
 
 # Simulation Data
 
-To explore if our experiment design provides the necessary variation to estimate the model, we simulate a completed survey using random choices of 600 individuals. Because choices are random, the coefficients will (should) be insignificant. 
+To explore if our experiment design provides the necessary variation to estimate the model, we simulate a completed survey using random choices of 1200 individuals. Because choices are random, the coefficients will (should) be insignificant. 
 
 ```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
 
@@ -95,6 +100,10 @@ data %<>% group_by(ind_card_id) %>%
 data %<>% mutate(asc = ifelse(alt==2,1,0))
 
 ## Generate interactions
+data %<>% mutate(meals_nature = ifelse(nature>0,meals_nature/nature,0),
+                 meals_farmland = ifelse(farmland>0,meals_farmland/farmland,0))
+
+## Generate interactions
 data %<>% mutate(distance_nature = distance * nature,
                  distance_farmland = distance * farmland,
                  distance_meals_nature = distance * meals_nature,
@@ -106,7 +115,7 @@ write_csv(data,'..\\store\\simulation_data.csv')
 
 # Preference-space Models
 
-We first estimate the model using a simple multinomial logit (MNL). We then introduce the random parameter model (MXL) with uncorrelated random parameters. We maintain the assumption that parameters are uncorrelated to ease estimation during the simulation, but it is reasonable to relax this assumption to recover a full covariance matrix. We assume the distribution on _cost_ is fixed in order to derive subsequent empirical distributions of willingness to pay (WTP) using the a krinsky-robb bootstrap method. This means that the marginal utility of money is uniform across respondents. Finally, we add interactions between _distance_ and _nature_, _farmland_, _meals^{nature}_, and _meals^{farm}_.
+We first estimate the model using a simple multinomial logit (MNL). We then introduce the random parameter model (MXL) with uncorrelated random parameters. We maintain the assumption that parameters are uncorrelated to ease estimation during the simulation, but it is reasonable to relax this assumption to recover a full covariance matrix. We assume the distribution on $cost$ is fixed in order to derive subsequent empirical distributions of willingness to pay (WTP) using the a krinsky-robb bootstrap method. This means that the marginal utility of money is uniform across respondents. Finally, we add interactions between $distance$ and $nature$, $farmland$, $meals^{nature}$, and $meals^{farm}$.
 
 ```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
 
@@ -193,4 +202,19 @@ pref_interact <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + 
                     seed=42)
 
 summary(pref_interact)
+```
+
+## Nonparametric Multinomial Logit
+
+Here, the parameter on cost ($\lambda$) is assumed to be linear (implying a constant marginal utility of income) while the other parameters correspond to each attribute's level $n$. During this simulation, the only nonlinear parameters that could be estimated were $\beta^1_n$ and $\beta^2_n$, the parameters associated with $nature$ and $farmland$. Attempting to estimate the others (either independantly or jointly) resulted in a computationally singular matrix (not estimable). Perhaps this has to do with the constraints imposed on the design? In particular, the $meals$ attributes are constrained to be positive only when the $acres$ attributes are also positive. This is a strong condition to impose on the design. Prior to imposing this condition, all $\beta^i_n$ parameters were estimable. Perhaps it would be worth thinking about which parameters are most relevant to estimate nonlinearly. $Acres$? $Distance$? It is also entirely possible that this could be remedied with real choice data and a reasonable sample size.
+
+$$V_{it} = ASC + \lambda cost_{it} + \sum_n \beta^1_{n} nature_{it} + \sum_n \beta^2_{n} farmland_{it} + \beta^3 meals^{nature}_{it} + \beta^4 meals^{farm}_{it} + \beta^5 distance_{it} + \varepsilon_{it}$$
+
+```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
+
+pref_factor <-  gmnl(choice ~ asc + cost + as.factor(nature) + as.factor(farmland) + meals_nature + meals_farmland + distance | 0 ,
+                    data=d,
+                    model='mnl')
+
+summary(pref_factor)
 ```

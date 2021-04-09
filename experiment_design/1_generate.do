@@ -57,7 +57,8 @@ recode distance 	  (1=5) (2=15)  (3=40)
 **********************  IMPOSE CONDITIONS
 *****************************************
 
-// drop if nature + farmland > 120
+** ensure meals are only present when acres are present
+drop if (nature == 0 & meals_nature > 0) | (farmland == 0 & meals_farmland > 0)
 
 *****************************************
 **************************  IMPOSE PRIORS
@@ -99,6 +100,9 @@ egen 	card_id = group(block card_dcreate)
 sort 	block alt alt_id
 by 		block alt: gen card = _n
 sort 	block card alt
+
+replace meals_nature = meals_nature * nature
+replace meals_farmland = meals_farmland * farmland
 
 gen 	title = "No Project"  if alt == 2
 replace title = "Project" if alt == 1 

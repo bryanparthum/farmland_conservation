@@ -8,11 +8,11 @@ clear all
 set more off
 set seed 42
 
-// ** INSTALL PACKAGE TO CREATE D-EFFICIENT DESIGN
-// sysdir set PLUS "C:\Users\bparthum\OneDrive - Environmental Protection Agency (EPA)\software\stata\ado\plus"
-// sysdir set PERSONAL "C:\Users\bparthum\OneDrive - Environmental Protection Agency (EPA)\software\stata\ado\personal"
-// sysdir set OLDPLACE "C:\Users\bparthum\OneDrive - Environmental Protection Agency (EPA)\software\stata\ado"
-// ssc install dcreate
+** INSTALL PACKAGE TO CREATE D-EFFICIENT DESIGN
+sysdir set PLUS "C:\Users\bparthum\OneDrive - Environmental Protection Agency (EPA)\software\stata\ado\plus"
+sysdir set PERSONAL "C:\Users\bparthum\OneDrive - Environmental Protection Agency (EPA)\software\stata\ado\personal"
+sysdir set OLDPLACE "C:\Users\bparthum\OneDrive - Environmental Protection Agency (EPA)\software\stata\ado"
+ssc install dcreate
  
 *****************************************
 ********  CONSTRUCT FULL FACTORIAL MATRIX 
@@ -60,12 +60,15 @@ recode distance 	  (1=5) (2=15)  (3=40)
 ** ensure meals are only present when acres are present
 drop if (nature == 0 & meals_nature > 0) | (farmland == 0 & meals_farmland > 0)
 
+replace meals_nature   = meals_nature * nature
+replace meals_farmland = meals_farmland * farmland
+
 *****************************************
 **************************  IMPOSE PRIORS
 *****************************************
 
 matrix status_quo = 0,0,0,0,0,0
-matrix betas = J(1,36,0)
+matrix betas = J(1,54,0)
 
 *****************************************
 ********************  GENERATE EXPERIMENT
@@ -77,9 +80,9 @@ dcreate i.cost ///
 		i.distance##i.meals_nature ///
 		i.distance##i.meals_farmland, ///
 		nalt(1) ///
-		nset(48) ///
+		nset(72) ///
 		bmat(betas) ///
-		seed(42) ///
+		seed(987) ///
 		fixedalt(status_quo) ///
 		asc(2)
 
@@ -87,7 +90,7 @@ dcreate i.cost ///
 ************************  GENERATE BLOCKS
 *****************************************
 
-blockdes block, nblock(6) neval(40) seed(42)
+blockdes block, nblock(9) neval(40) seed(42)
 
 *****************************************
 *****************  SORT, ORDER, AND CLEAN
@@ -101,8 +104,8 @@ sort 	block alt alt_id
 by 		block alt: gen card = _n
 sort 	block card alt
 
-replace meals_nature = meals_nature * nature
-replace meals_farmland = meals_farmland * farmland
+// replace meals_nature = meals_nature * nature
+// replace meals_farmland = meals_farmland * farmland
 
 gen 	title = "No Project"  if alt == 2
 replace title = "Project" if alt == 1 

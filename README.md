@@ -25,8 +25,6 @@ Primary data collection has not yet been collected. A simulation of the analysis
 
 The analysis uses a combination of *Stata* and *R*. While *Stata* is proprietary software, *R* is free, open-source and available for download [here](https://www.r-project.org/). The experiment design is created in *Stata* using the [DCREATE](https://ideas.repec.org/c/boc/bocode/s458059.html) package (Hole 2015), the analysis is performed using *R* using the [GMNL](https://cran.r-project.org/web/packages/gmnl/gmnl.pdf) package (Sarrias and Daziano 2017). 
 
-*R* is free, open-source and available for download [here](https://www.r-project.org/).
-
 ## Performance
 
 The analyses in this paper involves many computationally intensive random parameter logit estimations. The computation time for each regression ranges from 5 to 45 minutes using 4 cores with 64GB RAM.

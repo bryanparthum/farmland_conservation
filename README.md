@@ -5,10 +5,10 @@ This repo contains data and code for Ando, Nyanzu and Parthum (2020), "[Buying t
 
 > **Abstract:** 
 > 1.	Conservation and local food have values
->     * Land conservation has grown and is found to be valued
->    *	Many local areas have passed referenda to protect natural areas around them
->    *	Some urbanizing areas are working to preserve farmland as part of the visual and cultural landscape
->    *	Demand for “local food” is exploding, accelerated by COVID
+>   * Land conservation has grown and is found to be valued
+>   *	Many local areas have passed referenda to protect natural areas around them
+>   *	Some urbanizing areas are working to preserve farmland as part of the visual and cultural landscape
+>   *	Demand for “local food” is exploding, accelerated by COVID
 2.	Question: what are the values of conservation and local food, and what groups of people value them the most?
   *	Lots of concern about environmental injustice in exposure to pollution
   *	How much of the benefits of nature conservation flow to marginalized groups? Little known

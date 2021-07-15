@@ -7,7 +7,7 @@ This repo contains data and code for Ando, Nyanzu and Parthum (2020), "[Buying t
 
 Click on the "fork" button at the very top right of the page to create an independent copy of the repo within your own GitHub account. Alternatively, click on the green "clone or download" button just below that to download the repo to your local computer. 
 
-The main file for conducting the analysis is .R`. This will provide the primary findings in the paper. Each file is stand-alone and should be self-explanatory.
+The main file for conducting the analysis is `code/simulation.R`. This will provide the primary findings in the paper. Each file is stand-alone and should be self-explanatory.
 
 ## Requirements
 

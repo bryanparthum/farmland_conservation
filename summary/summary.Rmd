@@ -73,10 +73,10 @@ To explore if our experiment design provides the necessary variation to estimate
 data <- bind_rows(replicate(100, data, simplify = FALSE))
 
 ## Number of individuals in sample
-nrow(data)/16
+nrow(data)/12
 
 ## Generate unique individual identifiers
-data %<>% mutate(ind_id = ceiling(row_number()/16))
+data %<>% mutate(ind_id = ceiling(row_number()/12))
 
 ## This includes both treatments. Create a unique card identifier for a pooled (both treatments) dataset
 data %<>% group_by(treatment,block,card) %>%

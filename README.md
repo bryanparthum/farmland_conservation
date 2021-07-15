@@ -11,7 +11,7 @@ This repo contains data and code for Ando, Nyanzu and Parthum (2021), "[Buying t
 >       -	Demand for “local food” is exploding, accelerated by COVID
 >  2.	Question: what are the values of conservation and local food, and what groups of people value them the most?
 >       -	Lots of concern about environmental injustice in exposure to pollution
->       -	How much of the benefits of nature conservation flow to marginalized groups? Little known
+>       -	How much of the benefits of nature conservation flow to marginalized groups? 
 >       -	Which racial and ethnic groups place the most value on local food from farms vs. food that can be harvested from nature with labor but no payment? 
 >       -	How does WTP for local food vary with food insecurity?
 >  3.	Method question: Do stated preference methods mis-estimate values of things to marginalized people by expressing distance attributes in terms of miles when disadvantages people don’t have access to cars? We test how things change if you express distance in time to get there instead of miles.

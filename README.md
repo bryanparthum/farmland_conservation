@@ -10,11 +10,11 @@ This repo contains data and code for Ando, Nyanzu and Parthum (2020), "[Buying t
 >       -	Some urbanizing areas are working to preserve farmland as part of the visual and cultural landscape
 >       -	Demand for “local food” is exploding, accelerated by COVID
 >  2.	Question: what are the values of conservation and local food, and what groups of people value them the most?
->  *	Lots of concern about environmental injustice in exposure to pollution
-  *	How much of the benefits of nature conservation flow to marginalized groups? Little known
-  *	Which racial and ethnic groups place the most value on local food from farms vs. food that can be harvested from nature with labor but no payment? 
-  *	How does WTP for local food vary with food insecurity?
-3.	Method question: Do stated preference methods mis-estimate values of things to marginalized people by expressing distance attributes in terms of miles when disadvantages people don’t have access to cars? We test how things change if you express distance in time to get there instead of miles.
+>       -	Lots of concern about environmental injustice in exposure to pollution
+>       -	How much of the benefits of nature conservation flow to marginalized groups? Little known
+>       -	Which racial and ethnic groups place the most value on local food from farms vs. food that can be harvested from nature with labor but no payment? 
+>       -	How does WTP for local food vary with food insecurity?
+>  3.	Method question: Do stated preference methods mis-estimate values of things to marginalized people by expressing distance attributes in terms of miles when disadvantages people don’t have access to cars? We test how things change if you express distance in time to get there instead of miles.
 
 ## Replication instructions
 Click on the "fork" button at the very top right of the page to create an independent copy of the repo within your own GitHub account. Alternatively, click on the green "clone or download" button just below that to download the repo to your local computer. 

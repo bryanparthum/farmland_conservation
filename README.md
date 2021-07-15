@@ -5,7 +5,7 @@ This repo contains data and code for Ando, Nyanzu and Parthum (2020), "[Buying t
 
 > **Abstract:** 
 > 1.	Conservation and local food have values
->    * Land conservation has grown and is found to be valued
+>     * Land conservation has grown and is found to be valued
 >    *	Many local areas have passed referenda to protect natural areas around them
 >    *	Some urbanizing areas are working to preserve farmland as part of the visual and cultural landscape
 >    *	Demand for “local food” is exploding, accelerated by COVID

@@ -1,7 +1,7 @@
 # Buying the Farm: The Distribution of Local and Cultural Benefits from Farmland Conservation
 
 
-This repo contains data and code for Ando, Nyanzu and Parthum (2020), "[Buying the Farm: The Distribution of Local and Cultural Benefits from Farmland Conservation](http://dx.doi.org/)". 
+This repo contains data and code for Ando, Nyanzu and Parthum (2021), "[Buying the Farm: The Distribution of Local and Cultural Benefits from Farmland Conservation](http://dx.doi.org/)". 
 
 > **Abstract:** 
 >  1.	Conservation and local food have values

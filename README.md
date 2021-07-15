@@ -19,7 +19,7 @@ This repo contains data and code for Ando, Nyanzu and Parthum (2021), "[Buying t
 ## Replication instructions
 Click on the "fork" button at the very top right of the page to create an independent copy of the repo within your own GitHub account. Alternatively, click on the green "clone or download" button just below that to download the repo to your local computer. 
 
-Primary data collection has not yet been collected. A simulation of the analysis can be conducted using `summary/summary.rmd`, or reference directly using `summary/summary.html`. This will provide a summary of the the primary estimation strategy and specifications in the paper.
+Primary data collection has not yet been collected. A simulation of the analysis can be conducted using `summary/summary.rmd`, or referenced directly using `summary/summary.html`. This will provide a summary of the the primary estimation strategy and specifications in the paper.
 
 ## Requirements
 

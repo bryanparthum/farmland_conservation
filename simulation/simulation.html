@@ -9,9 +9,9 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Amy Ando, Frederick Nyanzu, and Bryan Parthum" />
+<meta name="author" content="Amy Ando, Corey Lang, Frederick Nyanzu, and Bryan Parthum" />
 
-<meta name="date" content="2021-01-13" />
+<meta name="date" content="2021-04-21" />
 
 <title>Buying the Farm: The Distribution of Local and Cultural Benefits from Farmland Conservation</title>
 
@@ -3138,47 +3138,52 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">Buying the Farm: The Distribution of Local and Cultural Benefits from Farmland Conservation</h1>
-<h4 class="author">Amy Ando, Frederick Nyanzu, and Bryan Parthum</h4>
-<h4 class="date">2021-01-13</h4>
+<h4 class="author">Amy Ando, Corey Lang, Frederick Nyanzu, and Bryan Parthum</h4>
+<h4 class="date">2021-04-21</h4>
 
 </div>
 
 
 <div id="summary" class="section level1" number="1">
 <h1><span class="header-section-number">1</span> Summary</h1>
-<p>This document provides an overview of a simulation of the designed discrete choice experiment exploring local and cultural values of farmland conservation. The experiment design was creasted using <a href="https://ideas.repec.org/c/boc/bocode/s458059.html">-dcreate-</a> (Hole, 2015) in <a href="https://www.stata.com/stata15/">Stata 15</a>. Models are estimated in <a href="https://rstudio.com/">Rstudio</a>, an open source platform using the <a href="https://www.jstatsoft.org/article/view/v079i02">-gmnl-</a> package (Sarrias and Daziano, 2017).</p>
+<p>This document provides an overview of a simulation of the designed discrete choice experiment exploring local and cultural values of farmland conservation. The experiment design was created using <a href="https://ideas.repec.org/c/boc/bocode/s458059.html">-dcreate-</a> (Hole, 2015) in <a href="https://www.stata.com/stata15/">Stata 15</a>. Models are estimated in <a href="https://rstudio.com/">Rstudio</a>, an open-source platform using the <a href="https://www.jstatsoft.org/article/view/v079i02">-gmnl-</a> package (Sarrias and Daziano, 2017).</p>
 </div>
 <div id="the-experiment-design" class="section level1" number="2">
 <h1><span class="header-section-number">2</span> The Experiment Design</h1>
-<p>The experiment design consists of 3 blocks of 8 choice cards (occasions)—a total of 26 possible cards. Each choice occasion has a status-quo (no policy) option and an alternative (policy) option (i.e. dichotomous choice).</p>
+<p>The experiment design consists of 6 blocks of 8 choice cards (occasions)—a total of 48 possible cards. Each choice occasion has a status-quo (no policy) option and an alternative (policy) option (i.e. dichotomous choice).</p>
 <pre class="r"><code>## Read experiment design from generated design
-data &lt;- read_excel(&#39;../experiment_design/store/design_matrix.xlsx&#39;)
+data &lt;- read_excel(&#39;..\\experiment_design\\store\\design_matrix.xlsx&#39;)
 
 ## Summary table of attribute levels
 design_matrix_miles &lt;- data %&gt;%
                        filter(treatment==&quot;miles&quot;) %&gt;%
                        mutate(block = ifelse(cost==0,&#39;Status Quo&#39;,block),
-                              miles = paste(dist,&#39;&#39;,&#39;miles&#39;)) %&gt;%
+                              miles = paste(distance,&#39;&#39;,&#39;miles&#39;)) %&gt;%
                        group_by(block) %&gt;%
-                       distinct(cost,nature,farmland,food,meals,fruit,veggies,miles) %&gt;%
-                       arrange(factor(block, levels = c(&#39;Status Quo&#39;,1,2,3)))
+                       distinct(cost,nature,farmland,meals_nature,meals_farmland,miles) %&gt;%
+                       arrange(factor(block, levels = c(&#39;Status Quo&#39;,1,2,3,4,5,6))) %&gt;% 
+                       mutate(card = seq(n())) %&gt;%
+                       mutate(card = ifelse(block==&#39;Status Quo&#39;,0,card)) %&gt;% 
+                       ungroup()
 
 design_matrix_minutes &lt;- data %&gt;%
-                         filter(treatment==&quot;minutes&quot;) %&gt;%
+                         filter(treatment==&quot;time&quot;) %&gt;%
                          mutate(block = ifelse(cost==0,&#39;Status Quo&#39;,block),
-                                minutes = paste(dist,&#39;&#39;,&#39;minutes&#39;)) %&gt;%    
+                                minutes = paste(distance,&#39;&#39;,&#39;minutes&#39;)) %&gt;%    
                          group_by(block) %&gt;%
-                         distinct(cost,nature,farmland,food,meals,fruit,veggies,minutes) %&gt;%
-                         arrange(factor(block, levels = c(&#39;Status Quo&#39;,1,2,3))) %&gt;%
-                         ungroup()
+                       distinct(cost,nature,farmland,meals_nature,meals_farmland,minutes) %&gt;%
+                         arrange(factor(block, levels = c(&#39;Status Quo&#39;,1,2,3,4,5,6))) %&gt;% 
+                       mutate(card = seq(n())) %&gt;%
+                       mutate(card = ifelse(block==&#39;Status Quo&#39;,0,card)) %&gt;% 
+                       ungroup()
 
-design_matrix &lt;- cbind(design_matrix_miles, (design_matrix_minutes %&lt;&gt;% select(minutes))) %&gt;% relocate(minutes, .after = miles) %&gt;% relocate(food, .before = meals) 
+design_matrix &lt;- cbind(design_matrix_miles, (design_matrix_minutes %&lt;&gt;% select(minutes))) %&gt;% relocate(minutes, .after = miles) %&gt;% relocate(card, .after = block)
 
-kable(design_matrix, caption=&#39;Unique alternatives in each of the 3 blocks&#39;,booktabs = TRUE, align = c(&#39;l&#39;,&#39;c&#39;,&#39;c&#39;,&#39;c&#39;)) %&gt;% kable_classic() %&gt;% kable_styling(font_size = 16) %&gt;%
+kable(design_matrix, caption=&#39;Unique alternatives in each of the 6 blocks&#39;,booktabs = TRUE, align = c(&#39;l&#39;,&#39;c&#39;,&#39;c&#39;,&#39;c&#39;)) %&gt;% kable_classic() %&gt;% kable_styling(font_size = 16) %&gt;%
       footnote(&#39;There are two treatments (minutes and miles) that have identical designs&#39;,footnote_as_chunk = T)</code></pre>
 <table class=" lightable-classic table" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; margin-left: auto; margin-right: auto; font-size: 16px; margin-left: auto; margin-right: auto;border-bottom: 0;">
 <caption style="font-size: initial !important;">
-<span id="tab:unnamed-chunk-2">Table 2.1: </span>Unique alternatives in each of the 3 blocks
+<span id="tab:unnamed-chunk-2">Table 2.1: </span>Unique alternatives in each of the 6 blocks
 </caption>
 <thead>
 <tr>
@@ -3186,30 +3191,27 @@ kable(design_matrix, caption=&#39;Unique alternatives in each of the 3 blocks&#3
 block
 </th>
 <th style="text-align:center;">
+card
+</th>
+<th style="text-align:center;">
 cost
 </th>
 <th style="text-align:center;">
 nature
 </th>
-<th style="text-align:center;">
+<th style="text-align:left;">
 farmland
 </th>
-<th style="text-align:left;">
-food
+<th style="text-align:center;">
+meals_nature
 </th>
 <th style="text-align:center;">
-meals
+meals_farmland
 </th>
 <th style="text-align:center;">
-fruit
-</th>
-<th style="text-align:center;">
-veggies
-</th>
-<th style="text-align:left;">
 miles
 </th>
-<th style="text-align:center;">
+<th style="text-align:left;">
 minutes
 </th>
 </tr>
@@ -3238,12 +3240,9 @@ Status Quo
 0
 </td>
 <td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
 0 miles
 </td>
-<td style="text-align:center;">
+<td style="text-align:left;">
 0 minutes
 </td>
 </tr>
@@ -3252,30 +3251,56 @@ Status Quo
 1
 </td>
 <td style="text-align:center;">
+1
+</td>
+<td style="text-align:center;">
 50
 </td>
 <td style="text-align:center;">
-160
+40
+</td>
+<td style="text-align:left;">
+40
 </td>
 <td style="text-align:center;">
-0
+20000
 </td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
 <td style="text-align:left;">
 1
 </td>
 <td style="text-align:center;">
-4,000
+2
 </td>
 <td style="text-align:center;">
-4000
+20
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+40
 </td>
 <td style="text-align:center;">
 0
 </td>
-<td style="text-align:left;">
-15 miles
+<td style="text-align:center;">
+0
 </td>
 <td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
 30 minutes
 </td>
 </tr>
@@ -3284,31 +3309,57 @@ Status Quo
 1
 </td>
 <td style="text-align:center;">
-100
+3
 </td>
 <td style="text-align:center;">
-40
+100
 </td>
 <td style="text-align:center;">
 120
 </td>
 <td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
 1
 </td>
 <td style="text-align:center;">
-4,000
+4
 </td>
 <td style="text-align:center;">
-1000
+5
 </td>
 <td style="text-align:center;">
-3000
+120
 </td>
 <td style="text-align:left;">
-5 miles
+80
 </td>
 <td style="text-align:center;">
-15 minutes
+0
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
 </td>
 </tr>
 <tr>
@@ -3319,161 +3370,207 @@ Status Quo
 5
 </td>
 <td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
 40
 </td>
 <td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
 0
 </td>
 <td style="text-align:center;">
 0
 </td>
 <td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-5 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-100
-</td>
-<td style="text-align:center;">
-160
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-4,000
-</td>
-<td style="text-align:center;">
-4000
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-5 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-100
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-5 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-100
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-4,000
-</td>
-<td style="text-align:center;">
-3000
-</td>
-<td style="text-align:center;">
-1000
-</td>
-<td style="text-align:left;">
-15 miles
-</td>
-<td style="text-align:center;">
-30 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-20
-</td>
-<td style="text-align:center;">
-160
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
 40 miles
 </td>
-<td style="text-align:center;">
+<td style="text-align:left;">
 60 minutes
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
 1
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+7
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+8
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+20000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+1
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+20000
+</td>
+<td style="text-align:center;">
+20000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+4
 </td>
 <td style="text-align:center;">
 5
@@ -3481,250 +3578,20 @@ Status Quo
 <td style="text-align:center;">
 120
 </td>
-<td style="text-align:center;">
-40
-</td>
 <td style="text-align:left;">
-0
+80
 </td>
 <td style="text-align:center;">
-0
+120000
 </td>
 <td style="text-align:center;">
-0
+40000
 </td>
 <td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
 40 miles
 </td>
-<td style="text-align:center;">
+<td style="text-align:left;">
 60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-100
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-5 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-50
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-20
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-4,000
-</td>
-<td style="text-align:center;">
-2000
-</td>
-<td style="text-align:center;">
-2000
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-50
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-4,000
-</td>
-<td style="text-align:center;">
-2000
-</td>
-<td style="text-align:center;">
-2000
-</td>
-<td style="text-align:left;">
-15 miles
-</td>
-<td style="text-align:center;">
-30 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-50
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-4,000
-</td>
-<td style="text-align:center;">
-1000
-</td>
-<td style="text-align:center;">
-3000
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-20
-</td>
-<td style="text-align:center;">
-160
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-5 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-50
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-15 miles
-</td>
-<td style="text-align:center;">
-30 minutes
 </td>
 </tr>
 <tr>
@@ -3735,59 +3602,111 @@ Status Quo
 5
 </td>
 <td style="text-align:center;">
-40
+20
 </td>
 <td style="text-align:center;">
 120
 </td>
 <td style="text-align:left;">
-1
+120
 </td>
 <td style="text-align:center;">
-4,000
+0
 </td>
 <td style="text-align:center;">
-1000
+60000
 </td>
 <td style="text-align:center;">
-3000
+5 miles
 </td>
 <td style="text-align:left;">
-15 miles
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
 </td>
 <td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+20000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+7
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
 30 minutes
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-3
+2
 </td>
 <td style="text-align:center;">
-20
+8
+</td>
+<td style="text-align:center;">
+5
 </td>
 <td style="text-align:center;">
 40
 </td>
-<td style="text-align:center;">
-120
-</td>
 <td style="text-align:left;">
 0
 </td>
 <td style="text-align:center;">
-0
+40000
 </td>
 <td style="text-align:center;">
 0
 </td>
 <td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
 40 miles
 </td>
-<td style="text-align:center;">
+<td style="text-align:left;">
 60 minutes
 </td>
 </tr>
@@ -3796,30 +3715,56 @@ Status Quo
 3
 </td>
 <td style="text-align:center;">
+1
+</td>
+<td style="text-align:center;">
 5
 </td>
 <td style="text-align:center;">
 80
 </td>
+<td style="text-align:left;">
+120
+</td>
 <td style="text-align:center;">
-80
+0
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+40 miles
 </td>
 <td style="text-align:left;">
-1
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
 </td>
 <td style="text-align:center;">
-4,000
+2
 </td>
 <td style="text-align:center;">
-2000
+20
 </td>
 <td style="text-align:center;">
-2000
+120
 </td>
 <td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
 5 miles
 </td>
-<td style="text-align:center;">
+<td style="text-align:left;">
 15 minutes
 </td>
 </tr>
@@ -3828,30 +3773,27 @@ Status Quo
 3
 </td>
 <td style="text-align:center;">
-50
+3
 </td>
 <td style="text-align:center;">
-120
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
+5
 </td>
 <td style="text-align:center;">
 0
 </td>
 <td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
 15 miles
 </td>
-<td style="text-align:center;">
+<td style="text-align:left;">
 30 minutes
 </td>
 </tr>
@@ -3860,62 +3802,27 @@ Status Quo
 3
 </td>
 <td style="text-align:center;">
-20
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-4,000
-</td>
-<td style="text-align:center;">
-3000
-</td>
-<td style="text-align:center;">
-1000
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-3
+4
 </td>
 <td style="text-align:center;">
 100
 </td>
 <td style="text-align:center;">
-80
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
 0
 </td>
 <td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+20000
+</td>
+<td style="text-align:center;">
 15 miles
 </td>
-<td style="text-align:center;">
+<td style="text-align:left;">
 30 minutes
 </td>
 </tr>
@@ -3927,28 +3834,25 @@ Status Quo
 5
 </td>
 <td style="text-align:center;">
-160
+5
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+20000
 </td>
 <td style="text-align:center;">
 0
 </td>
-<td style="text-align:left;">
-1
-</td>
 <td style="text-align:center;">
-4,000
-</td>
-<td style="text-align:center;">
-4000
-</td>
-<td style="text-align:center;">
-0
+15 miles
 </td>
 <td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
+30 minutes
 </td>
 </tr>
 <tr>
@@ -3956,30 +3860,27 @@ Status Quo
 3
 </td>
 <td style="text-align:center;">
-20
+6
 </td>
 <td style="text-align:center;">
-120
+50
 </td>
 <td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
 40
 </td>
-<td style="text-align:left;">
-1
+<td style="text-align:center;">
+40000
 </td>
 <td style="text-align:center;">
-4,000
+0
 </td>
 <td style="text-align:center;">
-3000
-</td>
-<td style="text-align:center;">
-1000
-</td>
-<td style="text-align:left;">
 5 miles
 </td>
-<td style="text-align:center;">
+<td style="text-align:left;">
 15 minutes
 </td>
 </tr>
@@ -3988,30 +3889,1448 @@ Status Quo
 3
 </td>
 <td style="text-align:center;">
+7
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+8
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+20000
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
+1
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
+4
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
 5
 </td>
 <td style="text-align:center;">
-160
+5
 </td>
 <td style="text-align:center;">
-0
+40
 </td>
 <td style="text-align:left;">
-0
+80
+</td>
+<td style="text-align:center;">
+20000
 </td>
 <td style="text-align:center;">
 0
 </td>
 <td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
+5 miles
 </td>
 <td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
 15 miles
 </td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
 <td style="text-align:center;">
+7
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
+8
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+20000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+1
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+4
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+20000
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+7
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+8
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+6
+</td>
+<td style="text-align:center;">
+1
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+6
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+6
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+6
+</td>
+<td style="text-align:center;">
+4
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+6
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+6
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+6
+</td>
+<td style="text-align:center;">
+7
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+6
+</td>
+<td style="text-align:center;">
+8
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+7
+</td>
+<td style="text-align:center;">
+1
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+7
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+7
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+7
+</td>
+<td style="text-align:center;">
+4
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+7
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+7
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+7
+</td>
+<td style="text-align:center;">
+7
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+7
+</td>
+<td style="text-align:center;">
+8
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+20000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+8
+</td>
+<td style="text-align:center;">
+1
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+8
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+60000
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+8
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+8
+</td>
+<td style="text-align:center;">
+4
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+8
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+20000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+8
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+8
+</td>
+<td style="text-align:center;">
+7
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+20000
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+8
+</td>
+<td style="text-align:center;">
+8
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+20000
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+9
+</td>
+<td style="text-align:center;">
+1
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+9
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+9
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+9
+</td>
+<td style="text-align:center;">
+4
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+9
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+80000
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
+30 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+9
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+40000
+</td>
+<td style="text-align:center;">
+40 miles
+</td>
+<td style="text-align:left;">
+60 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+9
+</td>
+<td style="text-align:center;">
+7
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+5 miles
+</td>
+<td style="text-align:left;">
+15 minutes
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+9
+</td>
+<td style="text-align:center;">
+8
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+120000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+<td style="text-align:left;">
 30 minutes
 </td>
 </tr>
@@ -4027,14 +5346,14 @@ Status Quo
 </div>
 <div id="simulation-data" class="section level1" number="3">
 <h1><span class="header-section-number">3</span> Simulation Data</h1>
-<p>To explore if our experiment design provides the necessary variation to estimate the model, we simulate a completed survey using random choices of 600 individuals. Because choices are random, the coefficients will (should) be insignificant.</p>
+<p>To explore if our experiment design provides the necessary variation to estimate the model, we simulate a completed survey using random choices of 1200 individuals. Because choices are random, the coefficients will (should) be insignificant.</p>
 <pre class="r"><code>## Repeat for arbitrary number of respondents, assume one respondent per block-treatment pair 
 ## Three blocks of eight cards with two alternatives and two treatments in initial design
 data &lt;- bind_rows(replicate(100, data, simplify = FALSE))
 
 ## Number of individuals in sample
 nrow(data)/16</code></pre>
-<pre><code>## [1] 600</code></pre>
+<pre><code>## [1] 1800</code></pre>
 <pre class="r"><code>## Generate unique individual identifiers
 data %&lt;&gt;% mutate(ind_id = ceiling(row_number()/16))
 
@@ -4055,14 +5374,21 @@ data %&lt;&gt;% group_by(ind_card_id) %&gt;%
 data %&lt;&gt;% mutate(asc = ifelse(alt==2,1,0))
 
 ## Generate interactions
-data %&lt;&gt;% mutate(food_fruit = food * fruit)
+# data %&lt;&gt;% mutate(meals_nature = ifelse(nature&gt;0,meals_nature/nature,0),
+#                  meals_farmland = ifelse(farmland&gt;0,meals_farmland/farmland,0))
+
+## Generate interactions
+data %&lt;&gt;% mutate(distance_nature = distance * nature,
+                 distance_farmland = distance * farmland,
+                 distance_meals_nature = distance * meals_nature,
+                 distance_meals_farmland = distance * meals_farmland)
 
 ## Write to CSV 
-write_csv(data,&#39;../store/simulation_data.csv&#39;)</code></pre>
+write_csv(data,&#39;..\\store\\simulation_data.csv&#39;)</code></pre>
 </div>
 <div id="preference-space-models" class="section level1" number="4">
 <h1><span class="header-section-number">4</span> Preference-space Models</h1>
-<p>We first estimate the model using a simple multinomial logit (MNL). We then introduce the random parameter model (MXL) with both uncorrelated random parameters and fully correlated. We assume the distribution on <em>cost</em> is fixed in order to derive subsequent empirical distributions of willingness to pay (WTP) using the delta method. This means that the marginal utility of money is uniform across respondents.</p>
+<p>We first estimate the model using a simple multinomial logit (MNL). We then introduce the random parameter model (MXL) with uncorrelated random parameters. We maintain the assumption that parameters are uncorrelated to ease estimation during the simulation, but it is reasonable to relax this assumption to recover a full covariance matrix. We assume the distribution on <span class="math inline">\(cost\)</span> is fixed in order to derive subsequent empirical distributions of willingness to pay (WTP) using the a krinsky-robb bootstrap method. This means that the marginal utility of money is uniform across respondents. Finally, we add interactions between <span class="math inline">\(distance\)</span> and <span class="math inline">\(nature\)</span>, <span class="math inline">\(farmland\)</span>, <span class="math inline">\(meals^{nature}\)</span>, and <span class="math inline">\(meals^{farm}\)</span>.</p>
 <pre class="r"><code>## Create mlogit data
 d &lt;-  mlogit.data(data,
                   # shape=&#39;long&#39;, 
@@ -4075,12 +5401,12 @@ d &lt;-  mlogit.data(data,
                   # opposite=c(&#39;bid&#39;)) ## if changing distribution of cost coefficient to log-normal</code></pre>
 <div id="null-model" class="section level2" number="4.1">
 <h2><span class="header-section-number">4.1</span> Null Model</h2>
-<p><span class="math display">\[V_{it} = ACS + \varepsilon_{it}\]</span></p>
+<p><span class="math display">\[V_{it} = ASC + \varepsilon_{it}\]</span></p>
 <pre class="r"><code>####################################################
 #######################################  Null Models
 ####################################################
 
-null_model &lt;- mlogit(choice ~ asc | 0 , data=d)
+null_model &lt;- mlogit(choice ~ asc | 0, data=d)
 summary(null_model)</code></pre>
 <pre><code>## 
 ## Call:
@@ -4088,63 +5414,187 @@ summary(null_model)</code></pre>
 ## 
 ## Frequencies of alternatives:choice
 ##       1       2 
-## 0.49688 0.50313 
+## 0.49618 0.50382 
 ## 
 ## nr method
-## 2 iterations, 0h:0m:0s 
-## g&#39;(-H)^-1g = 0.188 
+## 2 iterations, 0h:0m:2s 
+## g&#39;(-H)^-1g =  0.84 
 ## successive function values within tolerance limits 
 ## 
 ## Coefficients :
 ##     Estimate Std. Error z-value Pr(&gt;|z|)
-## asc 0.012500   0.028868   0.433    0.665
+## asc 0.015278   0.016667  0.9166   0.3593
 ## 
-## Log-Likelihood: -3327</code></pre>
+## Log-Likelihood: -9980.9</code></pre>
 </div>
 <div id="multinomial-logit" class="section level2" number="4.2">
 <h2><span class="header-section-number">4.2</span> Multinomial Logit</h2>
-<p><span class="math display">\[V_{it} = ACS + \lambda cost_{it} + \beta_1 nature_{it} + \beta_2 farmland_{it} + \beta_3 food_{it} + \beta_4 distance_{it} + \varepsilon_{it}\]</span></p>
+<p><span class="math display">\[V_{it} = ASC + \lambda cost_{it} + \beta^1 nature_{it} + \beta^2 farmland_{it} + \beta^3 meals^{nature}_{it} + \beta^4 meals^{farm}_{it} + \beta^5 distance_{it} + \varepsilon_{it}\]</span></p>
 <pre class="r"><code>####################################################
 ################################################  MNL
 ####################################################
 
-pref_clogit &lt;-  gmnl(choice ~ asc + cost + nature + farmland + food + dist | 0 ,
+pref_clogit &lt;-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + distance | 0 ,
                      data=d,
                      model=&#39;mnl&#39;)
 
 summary(pref_clogit)</code></pre>
 <pre><code>## 
-## Model estimated on: Wed Jan 13 3:01:20 PM 2021 
+## Model estimated on: Wed Apr 21 2:46:20 PM 2021 
 ## 
 ## Call:
-## gmnl(formula = choice ~ asc + cost + nature + farmland + food + 
-##     dist | 0, data = d, model = &quot;mnl&quot;, method = &quot;nr&quot;)
+## gmnl(formula = choice ~ asc + cost + nature + farmland + meals_nature + 
+##     meals_farmland + distance | 0, data = d, model = &quot;mnl&quot;, method = &quot;nr&quot;)
 ## 
 ## Frequencies of categories:
 ## 
 ##       1       2 
-## 0.49688 0.50313 
+## 0.49618 0.50382 
 ## 
-## The estimation took: 0h:0m:1s 
+## The estimation took: 0h:0m:4s 
 ## 
 ## Coefficients:
-##             Estimate  Std. Error z-value Pr(&gt;|z|)
-## asc      -7.2956e-04  6.9368e+03  0.0000   1.0000
-## cost      1.2008e-04  8.5177e-04  0.1410   0.8879
-## nature   -1.3811e-04  4.3355e+01  0.0000   1.0000
-## farmland  6.4317e-05  4.3355e+01  0.0000   1.0000
-## food      5.8352e-02  5.7748e-02  1.0105   0.3123
-## dist     -1.3714e-03  1.6746e-03 -0.8189   0.4128
+##                   Estimate  Std. Error z-value Pr(&gt;|z|)  
+## asc             9.8817e-02  5.7569e-02  1.7165  0.08607 .
+## cost           -2.2461e-04  4.6755e-04 -0.4804  0.63095  
+## nature          1.0394e-03  4.8329e-04  2.1507  0.03150 *
+## farmland       -4.6052e-04  4.7668e-04 -0.9661  0.33399  
+## meals_nature   -2.9161e-07  4.9908e-07 -0.5843  0.55902  
+## meals_farmland  6.6038e-07  4.8702e-07  1.3559  0.17512  
+## distance        1.4334e-03  9.0979e-04  1.5755  0.11515  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
 ## Optimization of log-likelihood by Newton-Raphson maximisation
-## Log Likelihood: -3326
-## Number of observations: 4800
+## Log Likelihood: -9975.9
+## Number of observations: 14400
 ## Number of iterations: 2
-## Exit of MLE: gradient close to zero (gradtol)</code></pre>
+## Exit of MLE: successive function values within relative tolerance limit (reltol)</code></pre>
 </div>
 <div id="random-parameter-logit" class="section level2" number="4.3">
 <h2><span class="header-section-number">4.3</span> Random Parameter Logit</h2>
-<p><span class="math display">\[V_{it} = ACS + \lambda_i cost_{it} + \beta_{i1} nature + \beta_{i2} farmland + \beta_{i3} food + \beta_{i4} distance + \varepsilon_{it}\]</span></p>
+<p>In this simulation, the random parameter model is not estimable. The corresponding matrix is singular.</p>
+<p><span class="math display">\[V_{it} = ASC + \lambda cost_{it} + \beta^1_{i} nature_{it} + \beta^2_{i} farmland_{it} + \beta^3_{i} meals^{nature}_{it} + \beta^4_{i} meals^{farm}_{it} + \beta^5_{i} distance_{it} + \varepsilon_{it}\]</span></p>
+<pre class="r"><code># 
+# pref_uncorr &lt;-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + distance | 0 ,
+#                     data=d,
+#                     ranp=c(nature=&#39;n&#39;,farmland=&#39;n&#39;,meals_nature=&#39;n&#39;,meals_farmland=&#39;n&#39;,distance=&#39;n&#39;),
+#                     model=&#39;mixl&#39;,
+#                     panel=TRUE,
+#                     correlation=FALSE,
+#                     seed=42)
+# 
+# summary(pref_uncorr)</code></pre>
+</div>
+<div id="multinomial-logit-with-interactions" class="section level2" number="4.4">
+<h2><span class="header-section-number">4.4</span> Multinomial Logit with Interactions</h2>
+<p>In this simulation, we expand the standard multinomial model (with preference parameters fixed across the population) to include interactions with distance. This allows preferences to vary in the distance to each attribute in the model. A random parameter model was not estimable in these simulations.</p>
+<p><span class="math display">\[
+\begin{aligned}
+V_{it} = &amp; \ ASC + \lambda cost_{it} + \beta^1 nature_{it} + \beta^2 farmland_{it} + \beta^3 meals^{nature}_{it} + \beta^4 meals^{farm}_{it} + \beta^5 distance_{it} \\ 
+&amp; + \beta^6(distance_{it} \times nature_{it}) + \beta^7(distance_{it} \times farmland_{it}) \\
+&amp; + \beta^8(distance_{it} \times meals^{nature}_{it}) + \beta^9(distance_{it} \times meals^{farm}_{it}) + \varepsilon_{it}
+\end{aligned}
+\]</span></p>
+<pre class="r"><code>pref_interact &lt;-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + distance + distance_nature + distance_farmland + distance_meals_nature + distance_meals_farmland | 0 ,
+                    data=d,
+                    model=&#39;mnl&#39;)
+
+summary(pref_interact)</code></pre>
+<pre><code>## 
+## Model estimated on: Wed Apr 21 2:50:32 PM 2021 
+## 
+## Call:
+## gmnl(formula = choice ~ asc + cost + nature + farmland + meals_nature + 
+##     meals_farmland + distance + distance_nature + distance_farmland + 
+##     distance_meals_nature + distance_meals_farmland | 0, data = d, 
+##     model = &quot;mnl&quot;, method = &quot;nr&quot;)
+## 
+## Frequencies of categories:
+## 
+##       1       2 
+## 0.49618 0.50382 
+## 
+## The estimation took: 0h:4m:11s 
+## 
+## Coefficients:
+##                            Estimate  Std. Error z-value Pr(&gt;|z|)
+## asc                      1.4279e-08  8.8147e-02  0.0000   1.0000
+## cost                    -1.0692e-06  4.6910e-04 -0.0023   0.9982
+## nature                   4.5681e-07  9.1267e-04  0.0005   0.9996
+## farmland                -9.4706e-07  8.5613e-04 -0.0011   0.9991
+## meals_nature            -6.5337e-08  1.0240e-06 -0.0638   0.9491
+## meals_farmland          -1.2620e-06  1.0105e-06 -1.2489   0.2117
+## distance                -4.3717e-07  2.5865e-03 -0.0002   0.9999
+## distance_nature          1.1050e-05  2.6045e-05  0.4243   0.6714
+## distance_farmland       -1.5178e-05  2.5925e-05 -0.5854   0.5582
+## distance_meals_nature   -6.7446e-09  3.6829e-08 -0.1831   0.8547
+## distance_meals_farmland  5.7629e-08  3.5582e-08  1.6196   0.1053
+## 
+## Optimization of log-likelihood by Newton-Raphson maximisation
+## Log Likelihood: -9975.8
+## Number of observations: 14400
+## Number of iterations: 150
+## Exit of MLE: Iteration limit exceeded (iterlim)</code></pre>
+</div>
+<div id="nonparametric-multinomial-logit" class="section level2" number="4.5">
+<h2><span class="header-section-number">4.5</span> Nonparametric Multinomial Logit</h2>
+<p>Here, the parameter on cost (<span class="math inline">\(\lambda\)</span>) is assumed to be linear (implying a constant marginal utility of income) while the other parameters correspond to each attribute’s level <span class="math inline">\(n\)</span>.</p>
+<!-- During this simulation, the only nonlinear parameters that could be estimated were $\beta^1_n$ and $\beta^2_n$, the parameters associated with $nature$ and $farmland$. Attempting to estimate the others (either independantly or jointly) resulted in a computationally singular matrix (not estimable). Perhaps this has to do with the constraints imposed on the design? In particular, the $meals$ attributes are constrained to be positive only when the $acres$ attributes are also positive. This is a strong condition to impose on the design. Prior to imposing this condition, all $\beta^i_n$ parameters were estimable. Perhaps it would be worth thinking about which parameters are most relevant to estimate nonlinearly. $Acres$? $Distance$? It is also entirely possible that this could be remedied with real choice data and a reasonable sample size. -->
+<p><span class="math display">\[V_{it} = ASC + \lambda cost_{it} + \sum_n \beta^1_{n} nature_{it} + \sum_n \beta^2_{n} farmland_{it} + \sum_n \beta_n^3 meals^{nature}_{it} + \sum_n \beta_n^4 meals^{farm}_{it} + \sum_n \beta_n^5 distance_{it} + \varepsilon_{it}\]</span></p>
+<pre class="r"><code>pref_factor &lt;-  gmnl(choice ~ asc + cost + as.factor(nature) + as.factor(farmland) + as.factor(meals_nature) + as.factor(meals_farmland) + as.factor(distance) | 0 ,
+                    data=d,
+                    model=&#39;mnl&#39;)
+
+summary(pref_factor)</code></pre>
+<pre><code>## 
+## Model estimated on: Wed Apr 21 2:51:00 PM 2021 
+## 
+## Call:
+## gmnl(formula = choice ~ asc + cost + as.factor(nature) + as.factor(farmland) + 
+##     as.factor(meals_nature) + as.factor(meals_farmland) + as.factor(distance) | 
+##     0, data = d, model = &quot;mnl&quot;, method = &quot;nr&quot;)
+## 
+## Frequencies of categories:
+## 
+##       1       2 
+## 0.49618 0.50382 
+## 
+## The estimation took: 0h:0m:28s 
+## 
+## Coefficients:
+##                                    Estimate  Std. Error z-value Pr(&gt;|z|)  
+## asc                              0.00371212          NA      NA       NA  
+## cost                            -0.00018398  0.00049768 -0.3697  0.71162  
+## as.factor(nature)40              0.06300733  0.07111315  0.8860  0.37561  
+## as.factor(nature)80              0.13678111  0.07186102  1.9034  0.05699 .
+## as.factor(nature)120             0.13183906  0.07365222  1.7900  0.07345 .
+## as.factor(farmland)40           -0.02592473  0.07792955 -0.3327  0.73938  
+## as.factor(farmland)80           -0.02071422  0.07745366 -0.2674  0.78913  
+## as.factor(farmland)120          -0.03482177  0.07584759 -0.4591  0.64616  
+## as.factor(meals_nature)20000    -0.00709314  0.07136612 -0.0994  0.92083  
+## as.factor(meals_nature)40000    -0.06543778  0.05720072 -1.1440  0.25262  
+## as.factor(meals_nature)60000    -0.07356016  0.07542666 -0.9753  0.32943  
+## as.factor(meals_nature)80000    -0.05382513  0.07483292 -0.7193  0.47197  
+## as.factor(meals_nature)120000   -0.00060916  0.07885079 -0.0077  0.99384  
+## as.factor(meals_farmland)20000   0.02666344  0.07336348  0.3634  0.71627  
+## as.factor(meals_farmland)40000   0.03183481  0.05717816  0.5568  0.57769  
+## as.factor(meals_farmland)60000  -0.00729929  0.07179619 -0.1017  0.91902  
+## as.factor(meals_farmland)80000   0.11382642  0.07491470  1.5194  0.12866  
+## as.factor(meals_farmland)120000  0.04999949  0.07459343  0.6703  0.50267  
+## as.factor(distance)5            -0.12896244          NA      NA       NA  
+## as.factor(distance)15           -0.07567983          NA      NA       NA  
+## as.factor(distance)30           -0.06078682          NA      NA       NA  
+## as.factor(distance)40           -0.09666243          NA      NA       NA  
+## as.factor(distance)60           -0.01324194          NA      NA       NA  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Optimization of log-likelihood by Newton-Raphson maximisation
+## Log Likelihood: -9972.4
+## Number of observations: 14400
+## Number of iterations: 2
+## Exit of MLE: successive function values within relative tolerance limit (reltol)</code></pre>
 </div>
 </div>
 

@@ -101,6 +101,9 @@ sort 	block alt alt_id
 by 		block alt: gen card = _n
 sort 	block card alt
 
+// replace meals_nature = meals_nature * nature
+// replace meals_farmland = meals_farmland * farmland
+
 gen 	title = "No Project"  if alt == 2
 replace title = "Project" if alt == 1 
 

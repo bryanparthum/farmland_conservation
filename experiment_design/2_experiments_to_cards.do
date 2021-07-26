@@ -30,11 +30,11 @@ replace image_dist = "C:\\Users\\bparthum\\Box\\farmland_conservation\\analyze\\
 
 ** GENERATE STATIC URL LINK FOR QUALTRICS
 forv i=1/6 {
-gen card_url_`i' = "https://raw.githubusercontent.com/bryanparthum/farmland_conservation/master/images/" + treatment + "_block_" + string(block) + "_card_" + string(`i') + ".png"
+gen card_url_`i' = "https://bryanparthum.github.io/farmland_conservation/choice_cards/cards/" + treatment + "_block_" + string(block) + "_card_" + string(`i') + ".png"
 }
 
 ** GENERATE STATIC URL LINK FOR QUALTRICS EXAMPLE CARD
-gen card_url_example = "https://raw.githubusercontent.com/bryanparthum/farmland_conservation/master/images/" + treatment + "_block_" + string(block) + "_card_6" + ".png"
+gen card_url_example = "https://bryanparthum.github.io/farmland_conservation/choice_cards/cards/" + treatment + "_block_" + string(block) + "_card_6" + ".png"
 
 ** ORDER 
 order treatment block card card_id title1 cost1 nature1 farmland1 meals_nature1 meals_farmland1 distance1 ///
@@ -42,7 +42,15 @@ order treatment block card card_id title1 cost1 nature1 farmland1 meals_nature1 
 	  card_url_1 card_url_2 card_url_3 card_url_4 card_url_5 card_url_6 card_url_example ///
 	  title2 cost2 nature2 farmland2 meals_nature2 meals_farmland2 distance2
 
-** SAVE FILE FOR MAILMERGE AND EMBEDDED DATA
+** SAVE FILE FOR MAILMERGE 
 export excel using store\card_database.xlsx, firstrow(variables) replace
+export excel using ..\choice_cards\card_database.xlsx, firstrow(variables) replace
+
+** GENERATE CONTACT LIST FOR QUALTRICS CONTACTS/EMBEDDED DATA
+keep treatment block card_url_example card_url_1 card_url_2 card_url_3 card_url_4 card_url_5 card_url_6
+duplicates drop
+gen Email = treatment + "_block_" + string(block) + "_conservation_survey@illinois.edu"
+
+export delimited using ..\choice_cards\qualtrics_contacts.csv, replace
 
 ** END OF SCRIPT. Have a nice day!

@@ -10,4 +10,4 @@ df = pd.read_excel(r'C:\Users\bparthum\Box\farmland_conservation\analyze\farmlan
 pages = convert_from_path(r'C:\Users\bparthum\Box\farmland_conservation\analyze\farmland_git\choice_cards\cards_merged.pdf', dpi = 300)
 
 for i in range(len(pages)):
-    pages[i].save(r'C:\Users\bparthum\Box\farmland_conservation\analyze\farmland_git\choice_cards\cards\'+ str(df.treatment[i]) + '_block_' + str(df.block[i]) + '_card_' + str(df.card[i]) + '.png', 'PNG')
+    pages[i].save('C:\\Users\\bparthum\\Box\\farmland_conservation\\analyze\\farmland_git\\choice_cards\\cards\\'+ str(df.treatment[i]) + '_block_' + str(df.block[i]) + '_card_' + str(df.card[i]) + '.png', 'PNG')

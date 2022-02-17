@@ -1,4 +1,4 @@
-** Written by: Bryan Parthum; bparthum@gmail.com ; September 2020
+** Written by: Bryan Parthum; bparthum@gmail.com ; February 2022
 
 ********************************************************************************
 *****************   Transform experiments.csv to cards.csv   *******************

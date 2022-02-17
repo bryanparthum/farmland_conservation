@@ -1,4 +1,4 @@
-** Written by: Bryan Parthum; bparthum@gmail.com ; December 2020
+** Written by: Bryan Parthum; bparthum@gmail.com ; February 2022
 
 ********************************************************************************
 ********************   D-EFFICIENT EXPERIMENT DESIGN   *************************

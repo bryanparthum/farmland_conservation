@@ -32,18 +32,18 @@ This document provides an overview of a simulation of the designed discrete choi
 
 # The Experiment Design
 
-The experiment design consists of 7 blocks of 6 choice cards (occasions)---a total of 42 possible cards. Each choice occasion has a status-quo (no policy) option and an alternative (policy) option (i.e. dichotomous choice). 
+The experiment design consists of 5 blocks of 6 choice cards (occasions)---a total of 30 possible cards. Each choice occasion has a status-quo (no policy) option and an alternative (policy) option (i.e. dichotomous choice). 
 
 ```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
 ## Read experiment design from generated design
-data <- read_excel('..\\experiment_design\\store\\design_matrix.xlsx')
+data <- read_excel('..\\experiment_design\\store\\design_matrix.xlsx') %>% mutate(cost=case_when(cost==200~500,T~cost))
 ## Summary table of attribute levels
 design_matrix_miles <- data %>%
                        filter(treatment=="miles") %>%
                        mutate(block = ifelse(cost==0,'Status Quo',block),
                               miles = paste(distance,'','miles')) %>%
                        group_by(block) %>%
-                       distinct(cost,nature,farmland,meals_nature,meals_farmland,miles) %>%
+                       distinct(cost,nature,farmland,meals_nature,meals_farmland,access,miles) %>%
                        arrange(factor(block, levels = c('Status Quo',1,2,3,4,5,6))) %>% 
                        mutate(card = seq(n())) %>%
                        mutate(card = ifelse(block=='Status Quo',0,card)) %>% 
@@ -53,7 +53,7 @@ design_matrix_minutes <- data %>%
                          mutate(block = ifelse(cost==0,'Status Quo',block),
                                 minutes = paste(distance,'','minutes')) %>%    
                          group_by(block) %>%
-                       distinct(cost,nature,farmland,meals_nature,meals_farmland,minutes) %>%
+                       distinct(cost,nature,farmland,meals_nature,meals_farmland,access,minutes) %>%
                          arrange(factor(block, levels = c('Status Quo',1,2,3,4,5,6))) %>% 
                        mutate(card = seq(n())) %>%
                        mutate(card = ifelse(block=='Status Quo',0,card)) %>% 
@@ -92,9 +92,13 @@ data %<>% mutate(asc = ifelse(alt==2,1,0))
 # data %<>% mutate(meals_nature = ifelse(nature>0,meals_nature/nature,0),
 #                  meals_farmland = ifelse(farmland>0,meals_farmland/farmland,0))
 ## Generate interactions
-data %<>% mutate(distance_nature = distance * nature,
-                 distance_farmland = distance * farmland,
-                 distance_meals_nature = distance * meals_nature,
+data %<>% mutate(access_indicator        = case_when(access!="No Access"~1,T~0), 
+                 access_nature           = access_indicator * nature,
+                 access_farmland         = access_indicator * farmland,
+                 access_distance         = access_indicator * distance,
+                 distance_nature         = distance * nature,
+                 distance_farmland       = distance * farmland,
+                 distance_meals_nature   = distance * meals_nature,
                  distance_meals_farmland = distance * meals_farmland)
 ## Write to CSV 
 write_csv(data,'..\\store\\simulation_data.csv')
@@ -102,7 +106,7 @@ write_csv(data,'..\\store\\simulation_data.csv')
 
 # Preference-space Models
 
-We first estimate the model using a simple multinomial logit (MNL). Then we explore additional heterogeneity in this model by adding interactions between $distance$ and $nature$, $farmland$, $meals^{nature}$, and $meals^{farm}$, and then nonlinear preferences across the attribute space. We then introduce the random parameter model (MXL) with uncorrelated random parameters. We then extend the random parameter model to a model with interactions and then, lastly, we relax the assumption that random parameters are uncorrelated to recover a full covariance matrix. We assume the distribution on $cost$ is fixed in order to derive subsequent empirical distributions of willingness to pay (WTP) using the a Krinsky-Robb bootstrap method. This means that the marginal utility of money is uniform across respondents.
+We first estimate the model using a simple multinomial logit (MNL). Then we explore additional heterogeneity in this model by adding interactions between $distance$ and $nature$, $farmland$, $meals^{nature}$, $meals^{farm}$, and $access$. Additional interactions are introduced between $access$ and $nature$, and $access$ and $farmland$, followed by nonlinear preferences across the attribute space. We then introduce the random parameter model (MXL) with uncorrelated random parameters. We then extend the random parameter model to a model with interactions and then, lastly, we relax the assumption that random parameters are uncorrelated to recover a full covariance matrix. We assume the distribution on $cost$ is fixed in order to derive subsequent empirical distributions of willingness to pay (WTP) using the a Krinsky-Robb bootstrap method. This means that the marginal utility of money is uniform across respondents.
 
 ```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
 ## Create mlogit data
@@ -131,13 +135,13 @@ summary(null_model)
 
 ## Multinomial Logit
 
-$$V_{it} = ASC + \lambda cost_{it} + \beta^1 nature_{it} + \beta^2 farmland_{it} + \beta^3 meals^{nature}_{it} + \beta^4 meals^{farm}_{it} + \beta^5 distance_{it} + \varepsilon_{it}$$
+$$V_{it} = ASC + \lambda cost_{it} + \beta^1 nature_{it} + \beta^2 farmland_{it} + \beta^3 meals^{nature}_{it} + \beta^4 meals^{farm}_{it} + \sum_n \beta_n^5 access_{it} + \beta^6 distance_{it} + \varepsilon_{it}$$
 
 ```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
 ####################################################
 ################################################  MNL
 ####################################################
-pref_clogit <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + distance | 0 ,
+pref_clogit <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + as.factor(access) + distance | 0 ,
                      data=d,
                      model='mnl')
 summary(pref_clogit)
@@ -145,18 +149,19 @@ summary(pref_clogit)
 
 ## Multinomial Logit with Interactions
 
-In this simulation, we expand the standard multinomial model (with preference parameters fixed across the population) to include interactions with distance. This allows preferences to vary in the distance to each attribute in the model. A random parameter model was not estimable in these simulations.
+In this simulation, we expand the standard multinomial model (with preference parameters fixed across the population) to include attribute interactions with access and distance. In the interactions, access is an indicator variable and is equal to 1 if picnic tables, walking trails, or both are a part of the conservation project. This allows preferences for access to vary according to the type of conservation land, and allows preferences to vary in the distance to each attribute in the model.
 
 $$
 \begin{aligned}
-V_{it} = & \ ASC + \lambda cost_{it} + \beta^1 nature_{it} + \beta^2 farmland_{it} + \beta^3 meals^{nature}_{it} + \beta^4 meals^{farm}_{it} + \beta^5 distance_{it} \\ 
-& + \beta^6(distance_{it} \times nature_{it}) + \beta^7(distance_{it} \times farmland_{it}) \\
-& + \beta^8(distance_{it} \times meals^{nature}_{it}) + \beta^9(distance_{it} \times meals^{farm}_{it}) + \varepsilon_{it}
+V_{it} = & \ ASC + \lambda cost_{it} + \beta^1 nature_{it} + \beta^2 farmland_{it} + \beta^3 meals^{nature}_{it} + \beta^4 meals^{farm}_{it} + \sum_n \beta_n^5access_{it} + \beta^6 distance_{it} \\ 
+& + \beta^7(access_{it} \times nature_{it})  + \beta^8(access_{it} \times farmaland_{it}) + \beta^9(access_{it} \times distance_{it}) \\
+& + \beta^{10}(distance_{it} \times nature_{it}) + \beta^{11}(distance_{it} \times farmland_{it}) \\
+& + \beta^{12}(distance_{it} \times meals^{nature}_{it}) + \beta^{13}(distance_{it} \times meals^{farm}_{it}) + \varepsilon_{it}
 \end{aligned}
 $$
 
 ```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
-pref_interact <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + distance + distance_nature + distance_farmland + distance_meals_nature + distance_meals_farmland | 0 ,
+pref_interact <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + as.factor(access) + distance + access_nature + access_farmland + access_distance + distance_nature + distance_farmland + distance_meals_nature + distance_meals_farmland | 0 ,
                     data=d,
                     model='mnl')
 summary(pref_interact)
@@ -164,14 +169,14 @@ summary(pref_interact)
 
 ## Nonparametric Multinomial Logit
 
-Here, the parameters on cost ($\lambda$) and distance ($\beta^5$) ar assumed to be linear (implying a constant marginal utility of income and distance) while the other parameters correspond to each attribute's level $n$. 
+Here, the parameters on cost ($\lambda$) and distance ($\beta^6$) are assumed to be linear (implying a constant marginal utility of income and distance) while the other parameters correspond to each attribute's level $n$. This is because for both cost and distance, the levels cannot take $0$ (status quo) in the Project scenario.  
 
 <!-- During this simulation, the only nonlinear parameters that could be estimated were $\beta^1_n$ and $\beta^2_n$, the parameters associated with $nature$ and $farmland$. Attempting to estimate the others (either independantly or jointly) resulted in a computationally singular matrix (not estimable). Perhaps this has to do with the constraints imposed on the design? In particular, the $meals$ attributes are constrained to be positive only when the $acres$ attributes are also positive. This is a strong condition to impose on the design. Prior to imposing this condition, all $\beta^i_n$ parameters were estimable. Perhaps it would be worth thinking about which parameters are most relevant to estimate nonlinearly. $Acres$? $Distance$? It is also entirely possible that this could be remedied with real choice data and a reasonable sample size. -->
 
-$$V_{it} = ASC + \lambda cost_{it} + \sum_n \beta^1_{n} nature_{it} + \sum_n \beta^2_{n} farmland_{it} + \sum_n \beta_n^3 meals^{nature}_{it} + \sum_n \beta_n^4 meals^{farm}_{it} +  \beta^5 distance_{it} + \varepsilon_{it}$$
+$$V_{it} = ASC + \lambda cost_{it} + \sum_n \beta^1_{n} nature_{it} + \sum_n \beta^2_{n} farmland_{it} + \sum_n \beta_n^3 meals^{nature}_{it} + \sum_n \beta_n^4 meals^{farm}_{it}+ \sum_n \beta_n^5 access_{it} + \beta^6 distance_{it} + \varepsilon_{it}$$
 
 ```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
-pref_factor <-  gmnl(choice ~ asc + cost + as.factor(nature) + as.factor(farmland) + as.factor(meals_nature) + as.factor(meals_farmland) + distance | 0 ,
+pref_factor <-  gmnl(choice ~ asc + cost + as.factor(nature) + as.factor(farmland) + as.factor(meals_nature) + as.factor(meals_farmland) + as.factor(access) + distance | 0 ,
                     data=d,
                     model='mnl')
 summary(pref_factor)
@@ -179,15 +184,15 @@ summary(pref_factor)
 
 ## Random Parameter Logit
 
-In this simulation, we relax the assumption that parameters are distributed equally across the population and allow for random preferences. The parameter on cost ($\lambda$) remains fixed, while others are now denoted with the subscript $i$ representing individual $i$. Parameters are assumed uncorrelated and distributed normal.
+In this simulation, we relax the assumption that parameters are distributed equally across the population and allow for random preferences. The parameter on cost ($\lambda$) and the parameters on $access$ remain fixed, while others are now denoted with the subscript $i$ representing individual $i$. Parameters are assumed uncorrelated and distributed normal.
 
-$$V_{it} = ASC + \lambda cost_{it} + \beta^1_{i} nature_{it} + \beta^2_{i} farmland_{it} + \beta^3_{i} meals^{nature}_{it} + \beta^4_{i} meals^{farm}_{it} + \beta^5_{i} distance_{it} + \varepsilon_{it}$$
+$$V_{it} = ASC + \lambda cost_{it} + \beta^1_{i} nature_{it} + \beta^2_{i} farmland_{it} + \beta^3_{i} meals^{nature}_{it} + \beta^4_{i} meals^{farm}_{it} + \sum_n \beta_n^5 access_{it} + \beta^6_{i} distance_{it} + \varepsilon_{it}$$
 
 ```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
 
-pref_uncorr <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + distance + distance_nature + distance_farmland + distance_meals_nature + distance_meals_farmland | 0 ,
+pref_uncorr <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + as.factor(access) + distance | 0 ,
                     data=d,
-                    ranp=c(nature='n',farmland='n',meals_nature='n',meals_farmland='n',distance='n',distance_nature='n',distance_farmland='n',distance_meals_nature='n',distance_meals_farmland='n'),
+                    ranp=c(nature='n',farmland='n',meals_nature='n',meals_farmland='n',distance='n'),
                     model='mixl',
                     panel=TRUE,
                     correlation=FALSE,
@@ -198,20 +203,21 @@ summary(pref_uncorr)
 
 ## Random Parameter Logit with Interactions
 
-Here, we extend the previous random parameter model to incorporate interactions between $distance$ and other attributes.
+Here, we extend the previous random parameter model to incorporate interactions between $access$ and $distance$ with other attributes.
 
 $$
 \begin{aligned}
-V_{it} = & \ ASC + \lambda cost_{it} + \beta_i^1 nature_{it} + \beta_i^2 farmland_{it} + \beta_i^3 meals^{nature}_{it} + \beta_i^4 meals^{farm}_{it} + \beta_i^5 distance_{it} \\ 
-& + \beta_i^6(distance_{it} \times nature_{it}) + \beta_i^7(distance_{it} \times farmland_{it}) \\
-& + \beta_i^8(distance_{it} \times meals^{nature}_{it}) + \beta_i^9(distance_{it} \times meals^{farm}_{it}) + \varepsilon_{it}
+V_{it} = & \ ASC + \lambda cost_{it} + \beta_i^1 nature_{it} + \beta_i^2 farmland_{it} + \beta_i^3 meals^{nature}_{it} + \beta_i^4 meals^{farm}_{it} + \sum_n \beta_n^5 access_{it} + \beta_i^6 distance_{it} \\ 
+& + \beta_i^7(access_{it} \times nature_{it})  + \beta_i^8(access_{it} \times farmaland_{it}) + \beta_i^9(access_{it} \times distance_{it}) \\
+& + \beta_i^{10}(distance_{it} \times nature_{it}) + \beta_i^{11}(distance_{it} \times farmland_{it}) \\
+& + \beta_i^{12}(distance_{it} \times meals^{nature}_{it}) + \beta_i^{13}(distance_{it} \times meals^{farm}_{it}) + \varepsilon_{it}
 \end{aligned}
 $$
 ```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
 
-pref_uncorr_int <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + distance | 0 ,
+pref_uncorr_int <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + as.factor(access) + distance + access_nature + access_farmland + access_distance + distance_nature + distance_farmland + distance_meals_nature + distance_meals_farmland | 0 ,
                     data=d,
-                    ranp=c(nature='n',farmland='n',meals_nature='n',meals_farmland='n',distance='n'),
+                    ranp=c(nature='n',farmland='n',meals_nature='n',meals_farmland='n',distance='n',access_nature='n',access_farmland='n',access_distance='n',distance_nature='n',distance_farmland='n',distance_meals_nature='n',distance_meals_farmland='n'),
                     model='mixl',
                     panel=TRUE,
                     correlation=FALSE,
@@ -220,21 +226,28 @@ pref_uncorr_int <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature 
 summary(pref_uncorr_int)
 ```
 
-## Random Parameter Logit with Interactions and Correlated Random Parameters
+<!-- ## Random Parameter Logit with Interactions and Correlated Random Parameters -->
 
-This is our final specification in preference-space. Random parameters are now assumed to be fully-correlated.
+<!-- This is our final specification in preference-space. Random parameters are now assumed to be fully-correlated---adding an additional product term to the specification that denotes the lower triangle of the covariance matrix containing elements for every random parameter in the model (not shown). -->
 
-$$V_{it} = ASC + \lambda cost_{it} + \beta^1_{i} nature_{it} + \beta^2_{i} farmland_{it} + \beta^3_{i} meals^{nature}_{it} + \beta^4_{i} meals^{farm}_{it} + \beta^5_{i} distance_{it} + \varepsilon_{it}$$
+<!-- $$ -->
+<!-- \begin{aligned} -->
+<!-- V_{it} = & \ ASC + \lambda cost_{it} + \beta_i^1 nature_{it} + \beta_i^2 farmland_{it} + \beta_i^3 meals^{nature}_{it} + \beta_i^4 meals^{farm}_{it} + \sum_n \beta_n^5 access_{it} + \beta_i^6 distance_{it} \\  -->
+<!-- & + \beta_i^7(access_{it} \times nature_{it})  + \beta_i^8(access_{it} \times farmaland_{it}) + \beta_i^9(access_{it} \times distance_{it}) \\ -->
+<!-- & + \beta_i^{10}(distance_{it} \times nature_{it}) + \beta_i^{11}(distance_{it} \times farmland_{it}) \\ -->
+<!-- & + \beta_i^{12}(distance_{it} \times meals^{nature}_{it}) + \beta_i^{13}(distance_{it} \times meals^{farm}_{it}) + \varepsilon_{it} -->
+<!-- \end{aligned} -->
+<!-- $$ -->
 
-```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE}
+<!-- ```{r message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE} -->
 
-pref_corr <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + distance + distance_nature + distance_farmland + distance_meals_nature + distance_meals_farmland | 0 ,
-                    data=d,
-                    ranp=c(nature='n',farmland='n',meals_nature='n',meals_farmland='n',distance='n',distance_nature='n',distance_farmland='n',distance_meals_nature='n',distance_meals_farmland='n'),
-                    model='mixl',
-                    panel=TRUE,
-                    correlation=TRUE,
-                    seed=42)
+<!-- pref_corr <-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + as.factor(access) + distance + access_nature + access_farmland + access_distance + distance_nature + distance_farmland + distance_meals_nature + distance_meals_farmland | 0 , -->
+<!--                     data=d, -->
+<!--                     ranp=c(nature='n',farmland='n',meals_nature='n',meals_farmland='n',distance='n',access_nature='n',access_farmland='n',access_distance='n',distance_nature='n',distance_farmland='n',distance_meals_nature='n',distance_meals_farmland='n'), -->
+<!--                     model='mixl', -->
+<!--                     panel=TRUE, -->
+<!--                     correlation=TRUE, -->
+<!--                     seed=42) -->
 
-summary(pref_corr)
-```
+<!-- summary(pref_corr) -->
+<!-- ``` -->

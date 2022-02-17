@@ -1,7 +1,7 @@
 # Buying the Farm: The Distribution of Local and Cultural Benefits from Farmland Conservation
 
 
-This repo contains data and code for Ando, Nyanzu and Parthum (2021), "[Buying the Farm: The Distribution of Local and Cultural Benefits from Farmland Conservation](http://dx.doi.org/)". 
+This repo contains data and code for Ando, Lang, Nyanzu, Parthum (2021), "[Buying the Farm: The Distribution of Local and Cultural Benefits from Farmland Conservation](http://dx.doi.org/)". A preliminary summary and simulation of the DCE can be found [here](https://bryanparthum.github.io/farmland_conservation/summary/summary.html). Cloning this repository will allow you to replicate the design, choice card creation, and econometric simulation as discussed in the [summary document](https://bryanparthum.github.io/farmland_conservation/summary/summary.html).
 
 > **Abstract:** 
 >  1.	Conservation and local food have values

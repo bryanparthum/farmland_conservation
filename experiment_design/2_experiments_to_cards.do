@@ -13,9 +13,9 @@ append using store/design_matrix_minutes
 save store/design_matrix, replace
 export excel using store/design_matrix.xlsx, firstrow(variables) replace
 
-replace access = "Maintained Trails" if access=="Walking Trails"
-replace access = "No Recreation" if access=="No Access"
-replace access = "Trails and Tables" if access=="Tables and Trails"
+// replace access = "Maintained Trails" if access=="Walking Trails"
+// replace access = "No Recreation" if access=="No Access"
+// replace access = "Trails and Tables" if access=="Tables and Trails"
 
 ** RESHAPE TO WIDE
 drop alt_id 

@@ -11,7 +11,7 @@
 
 <meta name="author" content="Amy Ando, Corey Lang, Frederick Nyanzu, and Bryan Parthum" />
 
-<meta name="date" content="2022-02-16" />
+<meta name="date" content="2022-06-21" />
 
 <title>Buying the Farm: The Distribution of Local and Cultural Benefits from Farmland Conservation</title>
 
@@ -259,7 +259,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Buying the Farm: The Distribution of Local and Cultural Benefits from Farmland Conservation</h1>
 <h4 class="author">Amy Ando, Corey Lang, Frederick Nyanzu, and Bryan Parthum</h4>
-<h4 class="date">2022-02-16</h4>
+<h4 class="date">2022-06-21</h4>
 
 </div>
 
@@ -272,32 +272,129 @@ div.tocify {
 <h1><span class="header-section-number">2</span> The Experiment Design</h1>
 <p>The experiment design consists of 5 blocks of 6 choice cards (occasions)—a total of 30 possible cards. Each choice occasion has a status-quo (no policy) option and an alternative (policy) option (i.e. dichotomous choice). We generate a D-efficient design with a reported D-efficiency of 14.34 after 8 iterations. Replication code is <a href="https://github.com/bryanparthum/farmland_conservation/blob/master/experiment_design/1_generate.do">here</a>.</p>
 <pre class="r"><code>## Read experiment design from generated design
-data &lt;- read_excel(&#39;..\\experiment_design\\store\\design_matrix.xlsx&#39;) %&gt;% mutate(cost=case_when(cost==200~500,T~cost))
-## Summary table of attribute levels
-design_matrix_miles &lt;- data %&gt;%
-                       filter(treatment==&quot;miles&quot;) %&gt;%
+data &lt;- read_excel(&#39;..\\experiment_design\\store\\design_matrix.xlsx&#39;)
+
+attributes = tibble(Attribute = c(&#39;Acres of Nature Land&#39;,
+                                  &#39;Acres of Farmland&#39;,
+                                  &#39;Meals from Nature&#39;,
+                                  &#39;Meals from Farmland&#39;,
+                                  &#39;Public Access&#39;,
+                                  &#39;Distance&#39;,
+                                  &#39;Annual Cost&#39;),
+                    `Levels \n(status quo)` = c(&#39;(0), 40, 80, 120&#39;,
+                                                &#39;(0), 40, 80, 120&#39;,
+                                                &#39;(0), 2, 6, 12&#39;,
+                                                &#39;(0), 2, 6, 12&#39;,
+                                                &#39;(No Recreation), Picnic Tables, \nMaintained Trails, Trails and Tables&#39;,
+                                                &#39;Near = 10, 15, 25 \nFar = 15, 20, 30&#39;,
+                                                &#39;5, 20, 50, 100, 500, 1000&#39;),
+                    Description = c())
+  
+attributes %&gt;% kable(caption=&#39;Attribute Levels in the Near and Far Treatments&#39;, booktabs = TRUE, align = c(&#39;l&#39;,&#39;c&#39;,&#39;c&#39;), escape=FALSE) %&gt;% 
+  kable_classic() %&gt;% kable_styling(font_size = 16)</code></pre>
+<table class=" lightable-classic table" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; margin-left: auto; margin-right: auto; font-size: 16px; margin-left: auto; margin-right: auto;">
+<caption style="font-size: initial !important;">
+<span id="tab:unnamed-chunk-2">Table 2.1: </span>Attribute Levels in the Near and Far Treatments
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Attribute
+</th>
+<th style="text-align:center;">
+Levels
+(status quo)
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Acres of Nature Land
+</td>
+<td style="text-align:center;">
+(0), 40, 80, 120
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Acres of Farmland
+</td>
+<td style="text-align:center;">
+(0), 40, 80, 120
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Meals from Nature
+</td>
+<td style="text-align:center;">
+(0), 2, 6, 12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Meals from Farmland
+</td>
+<td style="text-align:center;">
+(0), 2, 6, 12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Public Access
+</td>
+<td style="text-align:center;">
+(No Recreation), Picnic Tables,
+Maintained Trails, Trails and Tables
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Distance
+</td>
+<td style="text-align:center;">
+Near = 10, 15, 25
+Far = 15, 20, 30
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Annual Cost
+</td>
+<td style="text-align:center;">
+5, 20, 50, 100, 500, 1000
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>## Summary table of attribute levels
+design_matrix_near &lt;- data %&gt;%
+                       filter(treatment==&quot;near&quot;) %&gt;%
                        mutate(block = ifelse(cost==0,&#39;Status Quo&#39;,block),
-                              miles = paste(distance,&#39;&#39;,&#39;miles&#39;)) %&gt;%
+                              near = paste(distance,&#39;&#39;,&#39;miles&#39;)) %&gt;%
                        group_by(block) %&gt;%
-                       distinct(cost,nature,farmland,meals_nature,meals_farmland,access,miles) %&gt;%
+                       distinct(cost,nature,farmland,meals_nature,meals_farmland,access,near) %&gt;%
                        arrange(factor(block, levels = c(&#39;Status Quo&#39;,1,2,3,4,5,6))) %&gt;% 
                        mutate(card = seq(n())) %&gt;%
                        mutate(card = ifelse(block==&#39;Status Quo&#39;,0,card)) %&gt;% 
                        ungroup()
-design_matrix_minutes &lt;- data %&gt;%
-                         filter(treatment==&quot;minutes&quot;) %&gt;%
+design_matrix_far &lt;- data %&gt;%
+                         filter(treatment==&quot;far&quot;) %&gt;%
                          mutate(block = ifelse(cost==0,&#39;Status Quo&#39;,block),
-                                minutes = paste(distance,&#39;&#39;,&#39;minutes&#39;)) %&gt;%    
+                                far = paste(distance,&#39;&#39;,&#39;miles&#39;)) %&gt;%    
                          group_by(block) %&gt;%
-                       distinct(cost,nature,farmland,meals_nature,meals_farmland,access,minutes) %&gt;%
+                       distinct(cost,nature,farmland,meals_nature,meals_farmland,access,far) %&gt;%
                          arrange(factor(block, levels = c(&#39;Status Quo&#39;,1,2,3,4,5,6))) %&gt;% 
                        mutate(card = seq(n())) %&gt;%
                        mutate(card = ifelse(block==&#39;Status Quo&#39;,0,card)) %&gt;% 
                        ungroup()
-design_matrix &lt;- cbind(design_matrix_miles, (design_matrix_minutes %&lt;&gt;% select(minutes))) %&gt;% relocate(minutes, .after = miles) %&gt;% relocate(card, .after = block)
-kable(design_matrix, caption=&#39;Unique alternatives in each of the 6 blocks&#39;,booktabs = TRUE, align = c(&#39;l&#39;,&#39;c&#39;,&#39;c&#39;,&#39;c&#39;)) %&gt;% kable_classic() %&gt;% kable_styling(font_size = 16) %&gt;%
-      footnote(&#39;There are two treatments (minutes and miles) that have identical designs&#39;,footnote_as_chunk = T)</code></pre>
-<table class=" lightable-classic table" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; margin-left: auto; margin-right: auto; font-size: 16px; margin-left: auto; margin-right: auto;border-bottom: 0;">
+design_matrix &lt;- cbind(design_matrix_near, (design_matrix_far %&lt;&gt;% select(far))) %&gt;% 
+  relocate(far, .after = near) %&gt;% 
+  relocate(card, .after = block)
+kable(design_matrix, caption=&#39;Unique alternatives in each of the 6 blocks&#39;,booktabs = TRUE, align = c(&#39;l&#39;,&#39;c&#39;,&#39;c&#39;,&#39;c&#39;)) %&gt;% 
+  kable_classic() %&gt;% kable_styling(font_size = 16)</code></pre>
+<table class=" lightable-classic table" style="font-family: &quot;Arial Narrow&quot;, &quot;Source Sans Pro&quot;, sans-serif; margin-left: auto; margin-right: auto; font-size: 16px; margin-left: auto; margin-right: auto;">
 <caption style="font-size: initial !important;">
 <span id="tab:unnamed-chunk-2">Table 2.1: </span>Unique alternatives in each of the 6 blocks
 </caption>
@@ -328,10 +425,10 @@ meals_farmland
 access
 </th>
 <th style="text-align:left;">
-miles
+near
 </th>
 <th style="text-align:center;">
-minutes
+far
 </th>
 </tr>
 </thead>
@@ -359,13 +456,13 @@ Status Quo
 0
 </td>
 <td style="text-align:center;">
-No Access
+No Recreation
 </td>
 <td style="text-align:left;">
 0 miles
 </td>
 <td style="text-align:center;">
-0 minutes
+0 miles
 </td>
 </tr>
 <tr>
@@ -374,6 +471,326 @@ No Access
 </td>
 <td style="text-align:center;">
 1
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+Trails and Tables
+</td>
+<td style="text-align:left;">
+25 miles
+</td>
+<td style="text-align:center;">
+30 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+No Recreation
+</td>
+<td style="text-align:left;">
+10 miles
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+500
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+Trails and Tables
+</td>
+<td style="text-align:left;">
+25 miles
+</td>
+<td style="text-align:center;">
+30 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+4
+</td>
+<td style="text-align:center;">
+500
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+No Recreation
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+20 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+No Recreation
+</td>
+<td style="text-align:left;">
+25 miles
+</td>
+<td style="text-align:center;">
+30 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+Picnic Tables
+</td>
+<td style="text-align:left;">
+10 miles
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+1
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+Trails and Tables
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+20 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+Maintained Trails
+</td>
+<td style="text-align:left;">
+25 miles
+</td>
+<td style="text-align:center;">
+30 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+Maintained Trails
+</td>
+<td style="text-align:left;">
+25 miles
+</td>
+<td style="text-align:center;">
+30 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+4
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+No Recreation
+</td>
+<td style="text-align:left;">
+10 miles
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+5
 </td>
 <td style="text-align:center;">
 50
@@ -382,30 +799,446 @@ No Access
 40
 </td>
 <td style="text-align:left;">
-0
+80
 </td>
 <td style="text-align:center;">
 0
 </td>
 <td style="text-align:center;">
-0
+12
 </td>
 <td style="text-align:center;">
-Tables and Trails
+Picnic Tables
 </td>
 <td style="text-align:left;">
-40 miles
+15 miles
 </td>
 <td style="text-align:center;">
-60 minutes
+20 miles
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
+2
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+No Recreation
+</td>
+<td style="text-align:left;">
+25 miles
+</td>
+<td style="text-align:center;">
+30 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
 1
 </td>
 <td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+Maintained Trails
+</td>
+<td style="text-align:left;">
+10 miles
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
 2
+</td>
+<td style="text-align:center;">
+500
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+Maintained Trails
+</td>
+<td style="text-align:left;">
+10 miles
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+Trails and Tables
+</td>
+<td style="text-align:left;">
+10 miles
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+4
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+Trails and Tables
+</td>
+<td style="text-align:left;">
+10 miles
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+1000
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+No Recreation
+</td>
+<td style="text-align:left;">
+10 miles
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+1000
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+Picnic Tables
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+20 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
+1
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+No Recreation
+</td>
+<td style="text-align:left;">
+25 miles
+</td>
+<td style="text-align:center;">
+30 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+40
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+Trails and Tables
+</td>
+<td style="text-align:left;">
+25 miles
+</td>
+<td style="text-align:center;">
+30 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+500
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+Picnic Tables
+</td>
+<td style="text-align:left;">
+25 miles
+</td>
+<td style="text-align:center;">
+30 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
+4
+</td>
+<td style="text-align:center;">
+100
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+Trails and Tables
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+20 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+1000
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+Maintained Trails
+</td>
+<td style="text-align:left;">
+10 miles
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+Maintained Trails
+</td>
+<td style="text-align:left;">
+15 miles
+</td>
+<td style="text-align:center;">
+20 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+1
 </td>
 <td style="text-align:center;">
 5
@@ -414,10 +1247,170 @@ Tables and Trails
 80
 </td>
 <td style="text-align:left;">
-80
+40
+</td>
+<td style="text-align:center;">
+12
 </td>
 <td style="text-align:center;">
 2
+</td>
+<td style="text-align:center;">
+Trails and Tables
+</td>
+<td style="text-align:left;">
+25 miles
+</td>
+<td style="text-align:center;">
+30 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+40
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+No Recreation
+</td>
+<td style="text-align:left;">
+25 miles
+</td>
+<td style="text-align:center;">
+30 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+3
+</td>
+<td style="text-align:center;">
+500
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+120
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+Picnic Tables
+</td>
+<td style="text-align:left;">
+25 miles
+</td>
+<td style="text-align:center;">
+30 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+4
+</td>
+<td style="text-align:center;">
+1000
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+12
+</td>
+<td style="text-align:center;">
+Trails and Tables
+</td>
+<td style="text-align:left;">
+10 miles
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+5
+</td>
+<td style="text-align:center;">
+50
+</td>
+<td style="text-align:center;">
+80
+</td>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:center;">
+2
+</td>
+<td style="text-align:center;">
+0
+</td>
+<td style="text-align:center;">
+No Recreation
+</td>
+<td style="text-align:left;">
+10 miles
+</td>
+<td style="text-align:center;">
+15 miles
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:center;">
+6
+</td>
+<td style="text-align:center;">
+20
+</td>
+<td style="text-align:center;">
+120
+</td>
+<td style="text-align:left;">
+80
+</td>
+<td style="text-align:center;">
+6
 </td>
 <td style="text-align:center;">
 2
@@ -429,913 +1422,10 @@ Picnic Tables
 10 miles
 </td>
 <td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-3
-</td>
-<td style="text-align:center;">
-5
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-40
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-Tables and Trails
-</td>
-<td style="text-align:left;">
-10 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-4
-</td>
-<td style="text-align:center;">
-500
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
-120
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-Walking Trails
-</td>
-<td style="text-align:left;">
-10 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-5
-</td>
-<td style="text-align:center;">
-50
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:left;">
-40
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-Walking Trails
-</td>
-<td style="text-align:left;">
-10 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-100
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-40
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-No Access
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-1
-</td>
-<td style="text-align:center;">
-5
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
-40
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-Tables and Trails
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-20
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-120
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-No Access
-</td>
-<td style="text-align:left;">
-10 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-3
-</td>
-<td style="text-align:center;">
-100
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-40
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-Walking Trails
-</td>
-<td style="text-align:left;">
-20 miles
-</td>
-<td style="text-align:center;">
-30 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-4
-</td>
-<td style="text-align:center;">
-50
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
-120
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-No Access
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-5
-</td>
-<td style="text-align:center;">
-20
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
-40
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-No Access
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-2
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-500
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-80
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-Tables and Trails
-</td>
-<td style="text-align:left;">
-10 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-3
-</td>
-<td style="text-align:center;">
-1
-</td>
-<td style="text-align:center;">
-500
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
-120
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-Tables and Trails
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-3
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-500
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-40
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-Picnic Tables
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-3
-</td>
-<td style="text-align:center;">
-3
-</td>
-<td style="text-align:center;">
-50
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
-80
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-Tables and Trails
-</td>
-<td style="text-align:left;">
-20 miles
-</td>
-<td style="text-align:center;">
-30 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-3
-</td>
-<td style="text-align:center;">
-4
-</td>
-<td style="text-align:center;">
-5
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-No Access
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-3
-</td>
-<td style="text-align:center;">
-5
-</td>
-<td style="text-align:center;">
-50
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-No Access
-</td>
-<td style="text-align:left;">
-10 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-3
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-500
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:left;">
-40
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-Tables and Trails
-</td>
-<td style="text-align:left;">
-20 miles
-</td>
-<td style="text-align:center;">
-30 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-4
-</td>
-<td style="text-align:center;">
-1
-</td>
-<td style="text-align:center;">
-100
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-80
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-Tables and Trails
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-4
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-500
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
-120
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-No Access
-</td>
-<td style="text-align:left;">
-10 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-4
-</td>
-<td style="text-align:center;">
-3
-</td>
-<td style="text-align:center;">
-20
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:left;">
-40
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-No Access
-</td>
-<td style="text-align:left;">
-10 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-4
-</td>
-<td style="text-align:center;">
-4
-</td>
-<td style="text-align:center;">
-20
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-Tables and Trails
-</td>
-<td style="text-align:left;">
-10 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-4
-</td>
-<td style="text-align:center;">
-5
-</td>
-<td style="text-align:center;">
-5
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-120
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-No Access
-</td>
-<td style="text-align:left;">
-20 miles
-</td>
-<td style="text-align:center;">
-30 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-4
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-20
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
-120
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-Tables and Trails
-</td>
-<td style="text-align:left;">
-10 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-5
-</td>
-<td style="text-align:center;">
-1
-</td>
-<td style="text-align:center;">
-100
-</td>
-<td style="text-align:center;">
-80
-</td>
-<td style="text-align:left;">
-120
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-No Access
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-5
-</td>
-<td style="text-align:center;">
-2
-</td>
-<td style="text-align:center;">
-100
-</td>
-<td style="text-align:center;">
-120
-</td>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-Picnic Tables
-</td>
-<td style="text-align:left;">
-20 miles
-</td>
-<td style="text-align:center;">
-30 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-5
-</td>
-<td style="text-align:center;">
-3
-</td>
-<td style="text-align:center;">
-5
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:left;">
-120
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-Tables and Trails
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-5
-</td>
-<td style="text-align:center;">
-4
-</td>
-<td style="text-align:center;">
-50
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-120
-</td>
-<td style="text-align:center;">
-12
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-Tables and Trails
-</td>
-<td style="text-align:left;">
-10 miles
-</td>
-<td style="text-align:center;">
-15 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-5
-</td>
-<td style="text-align:center;">
-5
-</td>
-<td style="text-align:center;">
-20
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-120
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-Picnic Tables
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-5
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-20
-</td>
-<td style="text-align:center;">
-40
-</td>
-<td style="text-align:left;">
-80
-</td>
-<td style="text-align:center;">
-0
-</td>
-<td style="text-align:center;">
-6
-</td>
-<td style="text-align:center;">
-Walking Trails
-</td>
-<td style="text-align:left;">
-40 miles
-</td>
-<td style="text-align:center;">
-60 minutes
+15 miles
 </td>
 </tr>
 </tbody>
-<tfoot>
-<tr>
-<td style="padding: 0; " colspan="100%">
-<span style="font-style: italic;">Note: </span> <sup></sup> There are two treatments (minutes and miles) that have identical designs
-</td>
-</tr>
-</tfoot>
 </table>
 </div>
 <div id="experiment-to-choice-cards" class="section level1" number="3">
@@ -1344,10 +1434,10 @@ Walking Trails
 </div>
 <div id="simulation-data" class="section level1" number="4">
 <h1><span class="header-section-number">4</span> Simulation Data</h1>
-<p>To explore if our experiment design provides the necessary variation to estimate the model, we simulate a completed survey using random choices of 350 individuals. Because choices are random, the coefficients will (should) be insignificant. The miles treatment was selected for this simulation.</p>
+<p>To explore if our experiment design provides the necessary variation to estimate the model, we simulate a completed survey using random choices of 350 individuals. Because choices are random, the coefficients will (should) be insignificant. The near treatment was selected for this simulation.</p>
 <pre class="r"><code>## Repeat for arbitrary number of respondents, assume one respondent per block-treatment pair 
 ## Three blocks of eight cards with two alternatives and two treatments in initial design
-data %&lt;&gt;% filter(treatment==&#39;miles&#39;)
+data %&lt;&gt;% filter(treatment==&#39;near&#39;)
 data &lt;- bind_rows(replicate(50, data, simplify = FALSE))
 ## Number of individuals in sample
 nrow(data)/12</code></pre>
@@ -1434,7 +1524,7 @@ pref_clogit &lt;-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature +
                      model=&#39;mnl&#39;)
 summary(pref_clogit)</code></pre>
 <pre><code>## 
-## Model estimated on: Wed Feb 16 9:45:56 PM 2022 
+## Model estimated on: Tue Jun 21 8:21:47 AM 2022 
 ## 
 ## Call:
 ## gmnl(formula = choice ~ asc + cost + nature + farmland + meals_nature + 
@@ -1450,21 +1540,21 @@ summary(pref_clogit)</code></pre>
 ## 
 ## Coefficients:
 ##                                       Estimate  Std. Error z-value Pr(&gt;|z|)  
-## asc                                 0.16468585  0.19051025  0.8644  0.38734  
-## cost                                0.00014784  0.00029274  0.5050  0.61353  
-## nature                              0.00083093  0.00126022  0.6594  0.50967  
-## farmland                           -0.00090908  0.00123059 -0.7387  0.46007  
-## meals_nature                       -0.00785364  0.01110101 -0.7075  0.47927  
-## meals_farmland                      0.01986175  0.01129482  1.7585  0.07867 .
-## as.factor(access)Picnic Tables     -0.02166885  0.17086627 -0.1268  0.89908  
-## as.factor(access)Tables and Trails  0.12751520  0.12319987  1.0350  0.30066  
-## as.factor(access)Walking Trails     0.05955485  0.17410816  0.3421  0.73231  
-## distance                           -0.00188808  0.00382845 -0.4932  0.62189  
+## asc                                 4.5893e-01  2.3228e-01  1.9758  0.04818 *
+## cost                                1.2363e-05  1.6057e-04  0.0770  0.93863  
+## nature                              2.0324e-04  1.3104e-03  0.1551  0.87674  
+## farmland                            1.8125e-03  1.3248e-03  1.3681  0.17129  
+## meals_nature                        7.5708e-03  1.1392e-02  0.6646  0.50632  
+## meals_farmland                     -4.5916e-03  1.0957e-02 -0.4191  0.67517  
+## as.factor(access)No Recreation     -4.4654e-03  1.5126e-01 -0.0295  0.97645  
+## as.factor(access)Picnic Tables      8.7141e-02  1.7151e-01  0.5081  0.61140  
+## as.factor(access)Trails and Tables  8.3449e-02  1.5402e-01  0.5418  0.58795  
+## distance                            9.1562e-03  7.9519e-03  1.1515  0.24955  
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
 ## Optimization of log-likelihood by Newton-Raphson maximisation
-## Log Likelihood: -1034.8
+## Log Likelihood: -1036.1
 ## Number of observations: 1500
 ## Number of iterations: 3
 ## Exit of MLE: gradient close to zero (gradtol)</code></pre>
@@ -1480,54 +1570,10 @@ V_{it} = &amp; \ ASC + \lambda cost_{it} + \beta^1 nature_{it} + \beta^2 farmlan
 &amp; + \beta^{12}(distance_{it} \times meals^{nature}_{it}) + \beta^{13}(distance_{it} \times meals^{farm}_{it}) + \varepsilon_{it}
 \end{aligned}
 \]</span></p>
-<pre class="r"><code>pref_interact &lt;-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + as.factor(access) + distance + access_nature + access_farmland + access_distance + distance_nature + distance_farmland + distance_meals_nature + distance_meals_farmland | 0 ,
-                    data=d,
-                    model=&#39;mnl&#39;)
-summary(pref_interact)</code></pre>
-<pre><code>## 
-## Model estimated on: Wed Feb 16 9:45:57 PM 2022 
-## 
-## Call:
-## gmnl(formula = choice ~ asc + cost + nature + farmland + meals_nature + 
-##     meals_farmland + as.factor(access) + distance + access_nature + 
-##     access_farmland + access_distance + distance_nature + distance_farmland + 
-##     distance_meals_nature + distance_meals_farmland | 0, data = d, 
-##     model = &quot;mnl&quot;, method = &quot;nr&quot;)
-## 
-## Frequencies of categories:
-## 
-##       1       2 
-## 0.47867 0.52133 
-## 
-## The estimation took: 0h:0m:1s 
-## 
-## Coefficients:
-##                                       Estimate  Std. Error z-value Pr(&gt;|z|)  
-## asc                                 7.4415e-01  3.7030e-01  2.0096  0.04448 *
-## cost                                1.4937e-04  3.0800e-04  0.4850  0.62769  
-## nature                              2.2100e-03  3.4398e-03  0.6425  0.52055  
-## farmland                            3.4438e-03  2.9900e-03  1.1518  0.24942  
-## meals_nature                       -7.8224e-03  2.4776e-02 -0.3157  0.75222  
-## meals_farmland                      1.8852e-02  2.3640e-02  0.7975  0.42518  
-## as.factor(access)Picnic Tables      3.2327e-01  3.8846e-01  0.8322  0.40530  
-## as.factor(access)Tables and Trails  4.9313e-01  3.5604e-01  1.3850  0.16604  
-## as.factor(access)Walking Trails     3.8736e-01  3.6752e-01  1.0540  0.29188  
-## distance                            1.9568e-02  1.1482e-02  1.7042  0.08834 .
-## access_nature                       9.3554e-04  2.7443e-03  0.3409  0.73317  
-## access_farmland                    -2.3647e-03  2.4699e-03 -0.9574  0.33837  
-## access_distance                    -1.0555e-02  8.7030e-03 -1.2128  0.22519  
-## distance_nature                    -9.9177e-05  1.0093e-04 -0.9827  0.32576  
-## distance_farmland                  -1.1359e-04  9.2307e-05 -1.2305  0.21850  
-## distance_meals_nature               7.7947e-05  8.5197e-04  0.0915  0.92710  
-## distance_meals_farmland             2.7677e-05  8.7281e-04  0.0317  0.97470  
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 
-## Optimization of log-likelihood by Newton-Raphson maximisation
-## Log Likelihood: -1031.9
-## Number of observations: 1500
-## Number of iterations: 3
-## Exit of MLE: gradient close to zero (gradtol)</code></pre>
+<pre class="r"><code># pref_interact &lt;-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + as.factor(access) + distance + access_nature + access_farmland + access_distance + distance_nature + distance_farmland + distance_meals_nature + distance_meals_farmland | 0 ,
+#                     data=d,
+#                     model=&#39;mnl&#39;)
+# summary(pref_interact)</code></pre>
 </div>
 <div id="nonparametric-multinomial-logit" class="section level2" number="5.4">
 <h2><span class="header-section-number">5.4</span> Nonparametric Multinomial Logit</h2>
@@ -1539,7 +1585,7 @@ summary(pref_interact)</code></pre>
                     model=&#39;mnl&#39;)
 summary(pref_factor)</code></pre>
 <pre><code>## 
-## Model estimated on: Wed Feb 16 9:45:58 PM 2022 
+## Model estimated on: Tue Jun 21 8:21:48 AM 2022 
 ## 
 ## Call:
 ## gmnl(formula = choice ~ asc + cost + as.factor(nature) + as.factor(farmland) + 
@@ -1554,30 +1600,30 @@ summary(pref_factor)</code></pre>
 ## The estimation took: 0h:0m:1s 
 ## 
 ## Coefficients:
-##                                       Estimate  Std. Error z-value Pr(&gt;|z|)  
-## asc                                -0.15074857  0.23781920 -0.6339  0.52616  
-## cost                                0.00020495  0.00031354  0.6537  0.51332  
-## as.factor(nature)40                -0.37544973  0.22939515 -1.6367  0.10169  
-## as.factor(nature)80                -0.14300980  0.24057398 -0.5945  0.55221  
-## as.factor(nature)120               -0.16086614  0.22032603 -0.7301  0.46531  
-## as.factor(farmland)40              -0.47604747  0.20784808 -2.2904  0.02200 *
-## as.factor(farmland)80              -0.22959078  0.21709141 -1.0576  0.29025  
-## as.factor(farmland)120             -0.39727581  0.20188816 -1.9678  0.04909 *
-## as.factor(meals_nature)2            0.01491801  0.18706889  0.0797  0.93644  
-## as.factor(meals_nature)6            0.01045694  0.18175271  0.0575  0.95412  
-## as.factor(meals_nature)12           0.11270362  0.16919810  0.6661  0.50534  
-## as.factor(meals_farmland)2          0.13837747  0.17491575  0.7911  0.42888  
-## as.factor(meals_farmland)6          0.14589316  0.18390069  0.7933  0.42759  
-## as.factor(meals_farmland)12         0.34645502  0.16209730  2.1373  0.03257 *
-## as.factor(access)Picnic Tables      0.02684158  0.18971399  0.1415  0.88749  
-## as.factor(access)Tables and Trails  0.14799456  0.15098577  0.9802  0.32699  
-## as.factor(access)Walking Trails     0.27699195  0.21091572  1.3133  0.18909  
-## distance                           -0.00037129  0.00390619 -0.0951  0.92427  
+##                                       Estimate  Std. Error z-value Pr(&gt;|z|)   
+## asc                                 6.6569e-01  2.8935e-01  2.3006 0.021412 * 
+## cost                                4.5417e-05  1.6442e-04  0.2762 0.782367   
+## as.factor(nature)40                -7.3919e-02  2.0404e-01 -0.3623 0.717150   
+## as.factor(nature)80                -8.7066e-02  2.0836e-01 -0.4179 0.676042   
+## as.factor(nature)120                5.8641e-02  2.1154e-01  0.2772 0.781617   
+## as.factor(farmland)40               6.7234e-01  2.3394e-01  2.8740 0.004053 **
+## as.factor(farmland)80               6.0540e-01  2.4437e-01  2.4773 0.013237 * 
+## as.factor(farmland)120              6.3846e-01  2.2430e-01  2.8464 0.004421 **
+## as.factor(meals_nature)2            1.5421e-01  1.7655e-01  0.8735 0.382398   
+## as.factor(meals_nature)6           -1.5132e-01  1.8852e-01 -0.8026 0.422180   
+## as.factor(meals_nature)12           1.3175e-01  1.6007e-01  0.8231 0.410459   
+## as.factor(meals_farmland)2         -1.9756e-01  1.8237e-01 -1.0833 0.278691   
+## as.factor(meals_farmland)6         -1.8364e-01  1.7115e-01 -1.0729 0.283298   
+## as.factor(meals_farmland)12        -1.8324e-01  1.5242e-01 -1.2022 0.229279   
+## as.factor(access)No Recreation      1.0843e-01  1.5893e-01  0.6823 0.495059   
+## as.factor(access)Picnic Tables      1.7624e-01  1.9158e-01  0.9199 0.357628   
+## as.factor(access)Trails and Tables  1.4205e-01  1.6197e-01  0.8770 0.380484   
+## distance                            4.9778e-03  8.9642e-03  0.5553 0.578691   
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
 ## Optimization of log-likelihood by Newton-Raphson maximisation
-## Log Likelihood: -1030
+## Log Likelihood: -1030.9
 ## Number of observations: 1500
 ## Number of iterations: 3
 ## Exit of MLE: gradient close to zero (gradtol)</code></pre>
@@ -1586,58 +1632,15 @@ summary(pref_factor)</code></pre>
 <h2><span class="header-section-number">5.5</span> Random Parameter Logit</h2>
 <p>In this simulation, we relax the assumption that parameters are distributed equally across the population and allow for random preferences. The parameter on cost (<span class="math inline">\(\lambda\)</span>) and the parameters on <span class="math inline">\(access\)</span> remain fixed, while others are now denoted with the subscript <span class="math inline">\(i\)</span> representing individual <span class="math inline">\(i\)</span>. Parameters are assumed uncorrelated and distributed normal.</p>
 <p><span class="math display">\[V_{it} = ASC + \lambda cost_{it} + \beta^1_{i} nature_{it} + \beta^2_{i} farmland_{it} + \beta^3_{i} meals^{nature}_{it} + \beta^4_{i} meals^{farm}_{it} + \sum_n \beta_n^5 access_{it} + \beta^6_{i} distance_{it} + \varepsilon_{it}\]</span></p>
-<pre class="r"><code>pref_uncorr &lt;-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + as.factor(access) + distance | 0 ,
-                    data=d,
-                    ranp=c(nature=&#39;n&#39;,farmland=&#39;n&#39;,meals_nature=&#39;n&#39;,meals_farmland=&#39;n&#39;,distance=&#39;n&#39;),
-                    model=&#39;mixl&#39;,
-                    panel=TRUE,
-                    correlation=FALSE,
-                    seed=42)</code></pre>
-<pre><code>## Estimating MIXL model</code></pre>
-<pre class="r"><code>summary(pref_uncorr)</code></pre>
-<pre><code>## 
-## Model estimated on: Wed Feb 16 9:48:57 PM 2022 
-## 
-## Call:
-## gmnl(formula = choice ~ asc + cost + nature + farmland + meals_nature + 
-##     meals_farmland + as.factor(access) + distance | 0, data = d, 
-##     model = &quot;mixl&quot;, ranp = c(nature = &quot;n&quot;, farmland = &quot;n&quot;, meals_nature = &quot;n&quot;, 
-##         meals_farmland = &quot;n&quot;, distance = &quot;n&quot;), seed = 42, correlation = FALSE, 
-##     panel = TRUE, method = &quot;bfgs&quot;)
-## 
-## Frequencies of categories:
-## 
-##       1       2 
-## 0.47867 0.52133 
-## 
-## The estimation took: 0h:2m:58s 
-## 
-## Coefficients:
-##                                       Estimate  Std. Error z-value Pr(&gt;|z|)  
-## asc                                 0.16521399  0.19065120  0.8666  0.38617  
-## cost                                0.00014777  0.00029311  0.5042  0.61414  
-## as.factor(access)Picnic Tables     -0.02211788  0.17108401 -0.1293  0.89714  
-## as.factor(access)Tables and Trails  0.12775987  0.12327662  1.0364  0.30003  
-## as.factor(access)Walking Trails     0.05976643  0.17420754  0.3431  0.73154  
-## nature                              0.00083225  0.00126133  0.6598  0.50937  
-## farmland                           -0.00091091  0.00123199 -0.7394  0.45968  
-## meals_nature                       -0.00779626  0.01111647 -0.7013  0.48310  
-## meals_farmland                      0.01989457  0.01130759  1.7594  0.07851 .
-## distance                           -0.00187926  0.00383425 -0.4901  0.62405  
-## sd.nature                           0.00014976  0.00149300  0.1003  0.92010  
-## sd.farmland                         0.00015807  0.00335116  0.0472  0.96238  
-## sd.meals_nature                     0.00134696  0.01868022  0.0721  0.94252  
-## sd.meals_farmland                   0.00356699  0.09443647  0.0378  0.96987  
-## sd.distance                         0.00178274  0.00512018  0.3482  0.72771  
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 
-## Optimization of log-likelihood by BFGS maximization
-## Log Likelihood: -1034.7
-## Number of observations: 1500
-## Number of iterations: 202
-## Exit of MLE: successful convergence 
-## Simulation based on 40 draws</code></pre>
+<pre class="r"><code># pref_uncorr &lt;-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + as.factor(access) + distance | 0 ,
+#                     data=d,
+#                     ranp=c(nature=&#39;n&#39;,farmland=&#39;n&#39;,meals_nature=&#39;n&#39;,meals_farmland=&#39;n&#39;,distance=&#39;n&#39;),
+#                     model=&#39;mixl&#39;,
+#                     panel=TRUE,
+#                     correlation=FALSE,
+#                     seed=42)
+# 
+# summary(pref_uncorr)</code></pre>
 </div>
 <div id="random-parameter-logit-with-interactions" class="section level2" number="5.6">
 <h2><span class="header-section-number">5.6</span> Random Parameter Logit with Interactions</h2>
@@ -1650,77 +1653,15 @@ V_{it} = &amp; \ ASC + \lambda cost_{it} + \beta_i^1 nature_{it} + \beta_i^2 far
 &amp; + \beta_i^{12}(distance_{it} \times meals^{nature}_{it}) + \beta_i^{13}(distance_{it} \times meals^{farm}_{it}) + \varepsilon_{it}
 \end{aligned}
 \]</span></p>
-<pre class="r"><code>pref_uncorr_int &lt;-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + as.factor(access) + distance + access_nature + access_farmland + access_distance + distance_nature + distance_farmland + distance_meals_nature + distance_meals_farmland | 0 ,
-                    data=d,
-                    ranp=c(nature=&#39;n&#39;,farmland=&#39;n&#39;,meals_nature=&#39;n&#39;,meals_farmland=&#39;n&#39;,distance=&#39;n&#39;,access_nature=&#39;n&#39;,access_farmland=&#39;n&#39;,access_distance=&#39;n&#39;,distance_nature=&#39;n&#39;,distance_farmland=&#39;n&#39;,distance_meals_nature=&#39;n&#39;,distance_meals_farmland=&#39;n&#39;),
-                    model=&#39;mixl&#39;,
-                    panel=TRUE,
-                    correlation=FALSE,
-                    seed=42)</code></pre>
-<pre><code>## Estimating MIXL model</code></pre>
-<pre class="r"><code>summary(pref_uncorr_int)</code></pre>
-<pre><code>## 
-## Model estimated on: Wed Feb 16 9:58:31 PM 2022 
-## 
-## Call:
-## gmnl(formula = choice ~ asc + cost + nature + farmland + meals_nature + 
-##     meals_farmland + as.factor(access) + distance + access_nature + 
-##     access_farmland + access_distance + distance_nature + distance_farmland + 
-##     distance_meals_nature + distance_meals_farmland | 0, data = d, 
-##     model = &quot;mixl&quot;, ranp = c(nature = &quot;n&quot;, farmland = &quot;n&quot;, meals_nature = &quot;n&quot;, 
-##         meals_farmland = &quot;n&quot;, distance = &quot;n&quot;, access_nature = &quot;n&quot;, 
-##         access_farmland = &quot;n&quot;, access_distance = &quot;n&quot;, distance_nature = &quot;n&quot;, 
-##         distance_farmland = &quot;n&quot;, distance_meals_nature = &quot;n&quot;, 
-##         distance_meals_farmland = &quot;n&quot;), seed = 42, correlation = FALSE, 
-##     panel = TRUE, method = &quot;bfgs&quot;)
-## 
-## Frequencies of categories:
-## 
-##       1       2 
-## 0.47867 0.52133 
-## 
-## The estimation took: 0h:9m:34s 
-## 
-## Coefficients:
-##                                       Estimate  Std. Error z-value Pr(&gt;|z|)  
-## asc                                 7.4939e-01  3.7195e-01  2.0147  0.04393 *
-## cost                                1.4730e-04  3.1622e-04  0.4658  0.64134  
-## as.factor(access)Picnic Tables      3.2556e-01  3.9249e-01  0.8295  0.40683  
-## as.factor(access)Tables and Trails  4.9641e-01  3.5891e-01  1.3831  0.16663  
-## as.factor(access)Walking Trails     3.9022e-01  3.7153e-01  1.0503  0.29358  
-## nature                              2.2115e-03  3.4905e-03  0.6336  0.52635  
-## farmland                            3.5084e-03  3.0081e-03  1.1663  0.24350  
-## meals_nature                       -7.7985e-03  2.5094e-02 -0.3108  0.75597  
-## meals_farmland                      1.8964e-02  2.3921e-02  0.7928  0.42791  
-## distance                            1.9796e-02  1.1559e-02  1.7126  0.08679 .
-## access_nature                       9.4772e-04  2.7836e-03  0.3405  0.73351  
-## access_farmland                    -2.3707e-03  2.4941e-03 -0.9505  0.34185  
-## access_distance                    -1.0689e-02  8.7965e-03 -1.2152  0.22430  
-## distance_nature                    -1.0005e-04  1.0286e-04 -0.9726  0.33073  
-## distance_farmland                  -1.1713e-04  9.3428e-05 -1.2537  0.20994  
-## distance_meals_nature               8.2234e-05  8.6892e-04  0.0946  0.92460  
-## distance_meals_farmland             3.8151e-05  8.9614e-04  0.0426  0.96604  
-## sd.nature                           7.7444e-05  1.4852e-03  0.0521  0.95842  
-## sd.farmland                         3.7603e-04  2.1732e-03  0.1730  0.86263  
-## sd.meals_nature                     3.1798e-05  1.8821e-02  0.0017  0.99865  
-## sd.meals_farmland                   2.5173e-03  3.3897e-02  0.0743  0.94080  
-## sd.distance                         2.0180e-03  4.6772e-03  0.4315  0.66614  
-## sd.access_nature                    7.4755e-04  3.7997e-03  0.1967  0.84403  
-## sd.access_farmland                  2.1950e-03  3.0483e-03  0.7201  0.47148  
-## sd.access_distance                  3.4476e-05  8.2293e-03  0.0042  0.99666  
-## sd.distance_nature                  2.3266e-05  6.0981e-05  0.3815  0.70281  
-## sd.distance_farmland                4.7268e-05  6.6987e-05  0.7056  0.48042  
-## sd.distance_meals_nature            4.7903e-05  7.6284e-04  0.0628  0.94993  
-## sd.distance_meals_farmland          8.9039e-04  1.0233e-03  0.8701  0.38425  
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 
-## Optimization of log-likelihood by BFGS maximization
-## Log Likelihood: -1031.4
-## Number of observations: 1500
-## Number of iterations: 615
-## Exit of MLE: successful convergence 
-## Simulation based on 40 draws</code></pre>
+<pre class="r"><code># pref_uncorr_int &lt;-  gmnl(choice ~ asc + cost + nature + farmland + meals_nature + meals_farmland + as.factor(access) + distance + access_nature + access_farmland + access_distance + distance_nature + distance_farmland + distance_meals_nature + distance_meals_farmland | 0 ,
+#                     data=d,
+#                     ranp=c(nature=&#39;n&#39;,farmland=&#39;n&#39;,meals_nature=&#39;n&#39;,meals_farmland=&#39;n&#39;,distance=&#39;n&#39;,access_nature=&#39;n&#39;,access_farmland=&#39;n&#39;,access_distance=&#39;n&#39;,distance_nature=&#39;n&#39;,distance_farmland=&#39;n&#39;,distance_meals_nature=&#39;n&#39;,distance_meals_farmland=&#39;n&#39;),
+#                     model=&#39;mixl&#39;,
+#                     panel=TRUE,
+#                     correlation=FALSE,
+#                     seed=42)
+# 
+# summary(pref_uncorr_int)</code></pre>
 <!-- ## Random Parameter Logit with Interactions and Correlated Random Parameters -->
 <!-- This is our final specification in preference-space. Random parameters are now assumed to be fully-correlated---adding an additional product term to the specification that denotes the lower triangle of the covariance matrix containing elements for every random parameter in the model (not shown). -->
 <!-- $$ -->

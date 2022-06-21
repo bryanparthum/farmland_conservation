@@ -8,10 +8,13 @@ clear all
 set more off
 
 ** IMPORT
-use store/design_matrix_miles, clear
-append using store/design_matrix_minutes
+use store/design_matrix_near, clear
+append using store/design_matrix_far
 save store/design_matrix, replace
 export excel using store/design_matrix.xlsx, firstrow(variables) replace
+
+tostring cost, replace
+replace cost = "1,000" if cost =="1000"
 
 // replace access = "Maintained Trails" if access=="Walking Trails"
 // replace access = "No Recreation" if access=="No Access"
@@ -29,8 +32,8 @@ gen image_farmland = "C:\\Users\\bparthum\\Box\\farmland_conservation\\analyze\\
 gen image_meals_nature = "C:\\Users\\bparthum\\Box\\farmland_conservation\\analyze\\farmland_git\\choice_cards\\images\\meals_nature_" + string(meals_nature1) + ".png" 
 gen image_meals_farmland = "C:\\Users\\bparthum\\Box\\farmland_conservation\\analyze\\farmland_git\\choice_cards\\images\\meals_farmland_" + string(meals_farmland1) + ".png" 
 gen image_access = "C:\\Users\\bparthum\\Box\\farmland_conservation\\analyze\\farmland_git\\choice_cards\\images\\access_" + access1 + ".png" 
-gen image_distance = "C:\\Users\\bparthum\\Box\\farmland_conservation\\analyze\\farmland_git\\choice_cards\\images\\miles_" + string(distance1) + ".png" if treatment == "miles"
-replace image_dist = "C:\\Users\\bparthum\\Box\\farmland_conservation\\analyze\\farmland_git\\choice_cards\\images\\minutes_" + string(distance1) + ".png" if treatment == "minutes"
+gen image_distance = "C:\\Users\\bparthum\\Box\\farmland_conservation\\analyze\\farmland_git\\choice_cards\\images\\near_" + string(distance1) + ".png" if treatment == "near"
+replace image_dist = "C:\\Users\\bparthum\\Box\\farmland_conservation\\analyze\\farmland_git\\choice_cards\\images\\far_" + string(distance1) + ".png" if treatment == "far"
 // gen image_cost = "C:\\Users\\bparthum\\Box\\farmland_conservation\\analyze\\farmland_git\\choice_cards\\images\\cost_" + string(cost1) + ".png" 
 
 ** GENERATE STATIC URL LINK FOR QUALTRICS
@@ -51,11 +54,11 @@ order treatment block card card_id title1 cost1 nature1 farmland1 meals_nature1 
 export excel using store\card_database.xlsx, firstrow(variables) replace
 export excel using ..\choice_cards\card_database.xlsx, firstrow(variables) replace
 
-** GENERATE CONTACT LIST FOR QUALTRICS CONTACTS/EMBEDDED DATA
-keep treatment block card_url_example card_url_1 card_url_2 card_url_3 card_url_4 card_url_5 card_url_6
-duplicates drop
-gen Email = treatment + "_block_" + string(block) + "_conservation_survey@illinois.edu"
-
-export delimited using ..\choice_cards\qualtrics_contacts.csv, replace
+// ** GENERATE CONTACT LIST FOR QUALTRICS CONTACTS/EMBEDDED DATA
+// keep treatment block card_url_example card_url_1 card_url_2 card_url_3 card_url_4 card_url_5 card_url_6
+// duplicates drop
+// gen Email = treatment + "_block_" + string(block) + "_conservation_survey@illinois.edu"
+//
+// export delimited using ..\choice_cards\qualtrics_contacts.csv, replace
 
 ** END OF SCRIPT. Have a nice day!
